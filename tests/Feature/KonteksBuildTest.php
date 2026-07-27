@@ -91,6 +91,64 @@ it('membawa berkas Filament ke tahap yang membangun aset', function (): void {
     expect($dockerfile)->toContain('COPY app/Filament');
 });
 
+it('mendefinisikan setiap tahap sebelum tahap yang menyalin darinya', function (): void {
+    // Aturan ini ditulis setelah dilanggar, dan dilanggar karena saya kira
+    // rujukan maju berlaku di mana-mana. Ia hanya berlaku di buildx. BuildKit
+    // dengan driver docker bawaan menolaknya:
+    //
+    //     failed to solve: cannot copy from stage "vendor",
+    //     it needs to be defined before current stage "aset"
+    //
+    // Tidak ada Docker di mesin pengembangan, jadi satu-satunya cara menangkap
+    // ini sebelum deploy adalah memeriksa urutannya sebagai teks.
+    $baris = file(base_path('deploy/docker/Dockerfile'), FILE_IGNORE_NEW_LINES);
+
+    $urutanTahap = [];   // nama tahap => nomor baris tempat ia didefinisikan
+    $tahapSekarang = null;
+    $pelanggaran = [];
+
+    foreach ($baris as $nomor => $isi) {
+        // Komentar dilewati. Versi pertama test ini tidak melakukannya, lalu
+        // melaporkan pelanggaran pada sebuah komentar yang KEBETULAN menjelaskan
+        // aturan ini — dan menghabiskan waktu untuk mencari bug yang tidak ada.
+        if (str_starts_with(ltrim($isi), '#')) {
+            continue;
+        }
+
+        if (preg_match('/^FROM\s+\S+\s+AS\s+(\S+)/i', $isi, $m) === 1) {
+            $tahapSekarang = $m[1];
+            $urutanTahap[$tahapSekarang] = $nomor;
+
+            continue;
+        }
+
+        // Pola ini menangkap sampai spasi, termasuk titik dua, supaya rujukan
+        // ke image luar seperti composer:2 benar-benar terlihat sebagai image
+        // dan bukan sebagai tahap bernama "composer" yang hilang.
+        if (preg_match('/COPY\s+--from=(\S+)/', $isi, $m) !== 1) {
+            continue;
+        }
+
+        $dirujuk = $m[1];
+
+        // Rujukan ke image luar (composer:2), bukan ke tahap. Dilewati.
+        if (str_contains($dirujuk, ':') || str_contains($dirujuk, '/')) {
+            continue;
+        }
+
+        if (! array_key_exists($dirujuk, $urutanTahap)) {
+            $pelanggaran[] = sprintf(
+                'baris %d: tahap "%s" menyalin dari "%s" yang belum didefinisikan di atasnya',
+                $nomor + 1,
+                $tahapSekarang ?? '(tanpa nama)',
+                $dirujuk,
+            );
+        }
+    }
+
+    expect($pelanggaran)->toBe([], implode(' · ', $pelanggaran));
+});
+
 it('tetap mengecualikan vendor dari konteks build', function (): void {
     // Kalau suatu saat ada yang "memperbaiki" masalah di atas dengan membuang
     // vendor dari .dockerignore, hasilnya adalah ratusan megabyte salinan lokal

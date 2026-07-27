@@ -57,11 +57,44 @@ RUN apk add --no-cache \
 WORKDIR /var/www/html
 
 
+# ── vendor: dependensi Composer ────────────────────────────────────────
+FROM base AS vendor
+
+RUN apk add --no-cache git unzip
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+COPY composer.json composer.lock ./
+
+# --no-scripts: script post-autoload-dump memanggil artisan, dan artisan
+# belum disalin di titik ini. Autoloader dibangkitkan setelah seluruh kode
+# ada, di perintah terakhir tahap ini.
+RUN composer install \
+        --no-dev \
+        --no-scripts \
+        --no-autoloader \
+        --prefer-dist \
+        --no-interaction \
+        --no-progress
+
+COPY . .
+
+RUN composer dump-autoload --no-dev --optimize --classmap-authoritative \
+    && rm -rf /root/.composer /tmp/*
+
+
 # ── aset: bundel Vite ──────────────────────────────────────────────────
 #
-# Tahap ini dibangun SETELAH vendor, bukan sebelumnya, meski ditulis lebih dulu.
-# Sebabnya ada di COPY --from=vendor di bawah — dan sebab itu sendiri layak
-# dijelaskan, karena ia sempat mematikan deploy.
+# HARUS berada di bawah tahap vendor, dan urutannya bukan soal keterbacaan.
+# BuildKit dengan driver docker bawaan menolak menyalin dari tahap yang
+# didefinisikan belakangan:
+#
+#     failed to solve: cannot copy from stage "vendor",
+#     it needs to be defined before current stage "aset"
+#
+# Rujukan maju hanya berlaku di buildx. Menaruh tahap aset lebih dulu terbaca
+# lebih rapi — dan mematikan deploy.
 FROM node:20-bookworm-slim AS aset
 
 WORKDIR /app
@@ -91,33 +124,6 @@ COPY --from=vendor /var/www/html/vendor/filament ./vendor/filament
 COPY app/Filament ./app/Filament
 
 RUN npm run build
-
-
-# ── vendor: dependensi Composer ────────────────────────────────────────
-FROM base AS vendor
-
-RUN apk add --no-cache git unzip
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-ENV COMPOSER_ALLOW_SUPERUSER=1
-
-COPY composer.json composer.lock ./
-
-# --no-scripts: script post-autoload-dump memanggil artisan, dan artisan
-# belum disalin di titik ini. Autoloader dibangkitkan setelah seluruh kode
-# ada, di perintah terakhir tahap ini.
-RUN composer install \
-        --no-dev \
-        --no-scripts \
-        --no-autoloader \
-        --prefer-dist \
-        --no-interaction \
-        --no-progress
-
-COPY . .
-
-RUN composer dump-autoload --no-dev --optimize --classmap-authoritative \
-    && rm -rf /root/.composer /tmp/*
 
 
 # ── runtime ────────────────────────────────────────────────────────────
