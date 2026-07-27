@@ -1,0 +1,42 @@
+/*
+ * Font di-host sendiri, bukan dari CDN pihak ketiga.
+ *
+ * Dua alasan yang sama pentingnya: permintaan ke domain lain berarti satu DNS
+ * lookup dan satu handshake TLS tambahan di jaringan yang memang sudah lambat,
+ * dan setiap permintaan itu memberi tahu pihak ketiga siapa membuka
+ * pembukuannya, kapan.
+ *
+ * Subset latin saja. Public Sans datang sebagai font variabel, jadi satu
+ * berkas 26 KB melayani seluruh bobot 400-700 — lebih ringan daripada dua
+ * berkas statis. Italic sengaja tidak diikutkan: antarmuka ini tidak
+ * memakainya, dan 27 KB itu berarti bagi pengguna berkuota.
+ *
+ * Diperbarui dengan: pwsh scripts/fetch-fonts.ps1
+ */
+
+@font-face {
+    font-family: 'Public Sans';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('../fonts/public-sans-400-700.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/ibm-plex-mono-500.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/ibm-plex-mono-600.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

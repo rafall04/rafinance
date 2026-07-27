@@ -1,0 +1,55 @@
+# Worker antrean Rafin.
+#
+#   /etc/systemd/system/rafin-queue.service
+#   systemctl daemon-reload && systemctl enable --now rafin-queue
+#
+# README menyebut Horizon menunggu deploy Linux. Sampai Horizon dipasang,
+# unit ini yang menjalankan worker. Setelah Horizon masuk, ganti ExecStart
+# dengan `artisan horizon` dan hapus --queue di bawah.
+
+[Unit]
+Description=Rafin queue worker
+After=network.target postgresql.service redis-server.service
+Requires=network.target
+
+[Service]
+Type=simple
+User=rafin
+Group=rafin
+Restart=always
+RestartSec=5
+
+WorkingDirectory=/var/www/rafin/current
+
+# --max-time: worker didaur ulang tiap jam supaya kebocoran memori apa pun
+#   tidak menumpuk seharian.
+# --tries=3 + --backoff: job Telegram yang gagal karena API sedang lambat
+#   diberi kesempatan, bukan langsung masuk failed_jobs.
+# --stop-when-empty SENGAJA TIDAK dipakai: ini worker jangka panjang.
+ExecStart=/usr/bin/php artisan queue:work redis \
+    --queue=default \
+    --sleep=3 \
+    --tries=3 \
+    --backoff=10,30,60 \
+    --max-time=3600 \
+    --max-jobs=1000
+
+# Sinyal berhenti yang sopan: worker menyelesaikan job yang sedang jalan.
+# Konteks tenant WAJIB dibersihkan di batas job (lihat README, penyimpangan
+# set_config se-sesi) — mematikan paksa di tengah job bisa meninggalkan
+# koneksi dengan app.workspace_id yang masih terpasang.
+KillSignal=SIGTERM
+TimeoutStopSec=90
+
+# ── Pengetatan ──────────────────────────────────────────────────────────
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/www/rafin/shared/storage
+
+StandardOutput=append:/var/log/rafin/queue.log
+StandardError=append:/var/log/rafin/queue-error.log
+
+[Install]
+WantedBy=multi-user.target

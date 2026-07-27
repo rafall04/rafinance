@@ -1,0 +1,431 @@
+@import 'tailwindcss';
+@import './fonts.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+/*
+ * ---------------------------------------------------------------------------
+ * Token warna
+ * ---------------------------------------------------------------------------
+ *
+ * Diambil dari warna uang kertas rupiah. Bukan kegenitan: setiap orang
+ * Indonesia sudah punya asosiasi warna-ke-nominal yang terbentuk sejak kecil,
+ * dan memakai kosakata yang sudah dikenal lebih baik daripada memperkenalkan
+ * yang baru.
+ *
+ * Nilai untuk mode gelap sengaja diangkat terangnya — warna uang kertas dibuat
+ * untuk dilihat di atas kertas putih, dan dipakai apa adanya di atas latar
+ * gelap kontrasnya jatuh di bawah ambang keterbacaan. Rasio terhadap --paper
+ * gelap dicantumkan di tiap baris.
+ */
+
+:root {
+    color-scheme: light;
+
+    --paper: #fbfbf9;
+    --paper-sunk: #f1f1ec;
+    --rule: #e2e2da;
+    --ink: #17202a;
+    --ink-soft: #5b6672;
+
+    --biru-50: #1f6e9c;     /* aksi utama     — dari Rp50.000  · 5,38 : 4,92 */
+    --hijau-20: #2c7959;    /* pemasukan      — dari Rp20.000  · 5,08 : 4,65 */
+    --merah-100: #a83a48;   /* pengeluaran    — dari Rp100.000 · 6,03 : 5,51 */
+    --kuning-1: #c9a227;    /* draft, warning — dari Rp1.000   · lihat catatan */
+    --ungu-10: #6b4e92;     /* transfer       — dari Rp10.000  · 6,48 : 5,92 */
+
+    /*
+     * Kuning uang kertas Rp1.000 memang terang: sebagai TEKS ia hanya 2,13:1 di
+     * atas kartu — praktis tidak terbaca. Ia tetap dipakai apa adanya untuk
+     * bidang berwarna (bilah, tint lencana), dan versi gelap di bawah ini yang
+     * dipakai untuk teks di atasnya.
+     *
+     * Dua token untuk satu warna adalah pola biasa di sistem desain: satu untuk
+     * bidangnya, satu untuk apa yang ditulis di atasnya.
+     */
+    --kuning-teks: #7e6210;  /* 5,57 pada paper · 5,09 pada kartu · 4,97 pada tint */
+
+    --radius: 10px;
+    --shell-max: 480px;
+    --tap-min: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+        color-scheme: dark;
+
+        --paper: #12181f;
+        --paper-sunk: #1a222b;
+        --rule: #2a343f;
+        --ink: #e8eae6;
+        --ink-soft: #97a2ae;
+
+        --biru-50: #56a9d6;   /* 6,84 pada paper · 6,15 pada kartu */
+        --hijau-20: #4fb98a;  /* 7,35 · 6,61 */
+        --merah-100: #e4707e; /* 5,88 · 5,29 */
+        --kuning-1: #e0be55;  /* 9,92 · 8,92 */
+        --ungu-10: #a38fcb;   /* 6,25 · 5,62 */
+
+        /* Di latar gelap kuningnya sudah terbaca; tidak perlu versi terpisah. */
+        --kuning-teks: #e0be55;
+    }
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
+    --paper: #12181f;
+    --paper-sunk: #1a222b;
+    --rule: #2a343f;
+    --ink: #e8eae6;
+    --ink-soft: #97a2ae;
+
+    --biru-50: #56a9d6;
+    --hijau-20: #4fb98a;
+    --merah-100: #e4707e;
+    --kuning-1: #e0be55;
+    --kuning-teks: #e0be55;
+    --ungu-10: #a38fcb;
+}
+
+/*
+ * `inline` membuat Tailwind memakai var() apa adanya, bukan nilainya saat
+ * kompilasi. Tanpa itu, pergantian terang/gelap menuntut dua kelas di setiap
+ * elemen.
+ */
+@theme inline {
+    --font-sans: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+    --color-paper: var(--paper);
+    --color-paper-sunk: var(--paper-sunk);
+    --color-rule: var(--rule);
+    --color-ink: var(--ink);
+    --color-ink-soft: var(--ink-soft);
+
+    --color-biru: var(--biru-50);
+    --color-hijau: var(--hijau-20);
+    --color-merah: var(--merah-100);
+    --color-kuning: var(--kuning-1);
+    --color-kuning-teks: var(--kuning-teks);
+    --color-ungu: var(--ungu-10);
+
+    --radius-rafin: var(--radius);
+}
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+
+        /*
+         * Tarik-untuk-muat-ulang dimatikan di sumbu tegak.
+         *
+         * Di PWA ini gerakan itu hampir selalu tidak disengaja — dan yang paling
+         * sering kena adalah orang yang sedang menggulir ke atas di formulir
+         * tambah transaksi. Memuat ulang di tengah pengetikan berarti
+         * kehilangan nominal yang belum sempat disimpan.
+         */
+        overscroll-behavior-y: contain;
+    }
+
+    /*
+     * Menghapus jeda 300ms yang disisakan peramban seluler untuk menunggu
+     * kemungkinan ketukan ganda. Rafin tidak memakai ketukan ganda di mana pun,
+     * dan jeda itu membuat setiap tombol terasa lamban.
+     */
+    a,
+    button,
+    label,
+    select,
+    summary,
+    [role='button'] {
+        touch-action: manipulation;
+    }
+
+    body {
+        background-color: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-size: 15px;
+        line-height: 22px;
+        /* dvh, bukan vh: papan kunci ponsel mengubah tinggi viewport. */
+        min-height: 100dvh;
+    }
+
+    /*
+     * Fokus keyboard harus terlihat jelas, bukan sekadar ada. Offset menjaga
+     * garisnya tidak tenggelam ke dalam tombol berlatar pekat.
+     */
+    :focus-visible {
+        outline: 2px solid var(--biru-50);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+
+    :focus:not(:focus-visible) {
+        outline: none;
+    }
+
+    /*
+     * Gerak dihormati sebagai preferensi, bukan diperdebatkan. Bagi sebagian
+     * orang animasi bukan soal selera — ia memicu pusing.
+     */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}
+
+@layer components {
+    /*
+     * Semua nominal, tanpa kecuali. Angka berlebar seragam dan rata kanan
+     * itulah yang membuat daftar transaksi terbaca sebagai pembukuan, bukan
+     * sebagai linimasa media sosial.
+     */
+    .nominal {
+        font-family: var(--font-mono);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: 'tnum' 1;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .nominal-lg {
+        font-weight: 600;
+        font-size: 32px;
+        line-height: 36px;
+        letter-spacing: -0.01em;
+    }
+
+    .nominal-masuk {
+        color: var(--hijau-20);
+    }
+
+    .nominal-keluar {
+        color: var(--merah-100);
+    }
+
+    .nominal-transfer {
+        color: var(--ungu-10);
+    }
+
+    /*
+     * Mode privasi: nominal tertutup tanpa memuat ulang halaman. Dipakai saat
+     * mencatat di depan orang lain.
+     */
+    :root[data-privacy='on'] .nominal > .angka {
+        visibility: hidden;
+    }
+
+    :root[data-privacy='on'] .nominal {
+        position: relative;
+        color: var(--ink-soft);
+    }
+
+    :root[data-privacy='on'] .nominal::after {
+        content: '••••••';
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        letter-spacing: 0.05em;
+    }
+
+    .label {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+    }
+
+    .judul {
+        font-size: 20px;
+        line-height: 26px;
+        font-weight: 600;
+    }
+
+    .display {
+        font-size: 28px;
+        line-height: 32px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+
+    /* Garis rambut satu piksel sebagai pemisah utama, bukan kotak dan bayangan. */
+    .rule-t {
+        border-top: 1px solid var(--rule);
+    }
+
+    .rule-b {
+        border-bottom: 1px solid var(--rule);
+    }
+
+    /* Target sentuh minimum, dipakai setiap kontrol yang bisa ditekan. */
+    .tap {
+        min-height: var(--tap-min);
+        min-width: var(--tap-min);
+    }
+
+    .shell {
+        max-width: var(--shell-max);
+        margin-inline: auto;
+        width: 100%;
+    }
+
+    .kartu {
+        background-color: var(--paper-sunk);
+        border-radius: var(--radius);
+    }
+
+    .tombol-utama {
+        background-color: var(--biru-50);
+        color: var(--paper);
+        border-radius: var(--radius);
+        font-weight: 600;
+        min-height: var(--tap-min);
+        padding-inline: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .tombol-utama:disabled {
+        opacity: 0.5;
+    }
+
+    .tombol-halus {
+        color: var(--ink);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius);
+        font-weight: 500;
+        min-height: var(--tap-min);
+        padding-inline: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .isian {
+        background-color: var(--paper);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius);
+        color: var(--ink);
+        min-height: var(--tap-min);
+        padding: 10px 14px;
+        width: 100%;
+    }
+
+    .isian::placeholder {
+        color: var(--ink-soft);
+    }
+
+    .isian[aria-invalid='true'] {
+        border-color: var(--merah-100);
+    }
+
+    .pesan-galat {
+        color: var(--merah-100);
+        font-size: 13px;
+        line-height: 18px;
+    }
+
+    /*
+     * Papan angka.
+     *
+     * Tiga kolom di layar tegak. Saat ponsel diputar mendatar, tinggi layar
+     * tinggal ~360px dan susunan itu memakan seluruhnya — nominal yang sedang
+     * diketik tidak lagi terlihat, yang membuat papan angka kehilangan gunanya.
+     *
+     * Di layar pendek ia berubah jadi enam kolom dua baris: tinggi separuhnya,
+     * setiap tombol tetap 44px, dan nominalnya tetap di layar.
+     */
+    .papan-angka {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    /*
+     * Panel nominal — angka yang sedang diketik.
+     *
+     * Di layar tegak ia mengalir biasa. Di layar mendatar ia menempel di atas,
+     * karena tanpa itu ada posisi gulir di mana orang menekan tombol angka dan
+     * tidak melihat apa pun berubah. Papan angka tanpa umpan balik bukan papan
+     * angka, hanya deretan tombol.
+     */
+    .panel-nominal {
+        background-color: var(--paper);
+        /* Padding ada di sini, bukan sebagai utility di Blade: utility menang
+           atas layer components, jadi media query di bawah tidak akan bisa
+           merampingkannya kalau ditulis di markup. */
+        padding-block: 24px;
+    }
+
+    /*
+     * Layar mendatar.
+     *
+     * Tinggi tinggal ~360px, dan susunan tegak memakan seluruhnya. Yang
+     * dikerjakan di sini adalah merampingkan: papan angka jadi enam kolom,
+     * nominal menempel di atas, keterangan tambahan disembunyikan.
+     *
+     * Hasilnya rapat tapi berfungsi — bukan nyaman. Susunan dua kolom yang
+     * benar-benar memanfaatkan lebar mendatar menuntut markup dilepas dari
+     * utility Tailwind, dan dokumen rancangan memang menunda dua kolom sampai
+     * ≥1024px. Mencatat sambil ponsel dipegang mendatar juga bukan cara orang
+     * memakai buku kas.
+     */
+    @media (max-height: 520px) and (orientation: landscape) {
+        .papan-angka {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .papan-angka button {
+            font-size: 17px;
+        }
+
+        /* Nominal tetap terlihat saat isian digulir — tanpa ini ada posisi
+           gulir di mana menekan angka tidak memperlihatkan apa pun. */
+        .panel-nominal {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            border-bottom: 1px solid var(--rule);
+            padding-block: 8px;
+        }
+
+        /* Label "Nominal" disembunyikan: angkanya sendiri sudah menjelaskan,
+           dan setiap piksel tinggi berharga di sini. */
+        .panel-nominal .label {
+            display: none;
+        }
+
+        .nominal-lg {
+            font-size: 24px;
+            line-height: 28px;
+        }
+
+        /* Keterangan "bisa disimpan tanpa sinyal" berguna sekali di layar tegak,
+           tapi di sini ia memakan ruang yang dibutuhkan kolom isian. Pesannya
+           tetap tersampaikan di layar tegak, tempat orang pertama kali
+           membacanya. */
+        .catatan-offline {
+            display: none;
+        }
+    }
+}

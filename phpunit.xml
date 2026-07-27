@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="Arch">
+            <directory>tests/Arch</directory>
+        </testsuite>
+        <testsuite name="Security">
+            <directory>tests/Security</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+
+        <!--
+            Test berjalan di PostgreSQL sungguhan, bukan SQLite in-memory.
+            Separuh aturan mutlak Rafin hidup di dalam database — trigger
+            keseimbangan double-entry, larangan ubah transaksi posted, dan Row
+            Level Security. Test di atas SQLite akan hijau tanpa menguji satu
+            pun dari itu, yang jauh lebih berbahaya daripada test yang lambat.
+        -->
+        <env name="DB_CONNECTION" value="pgsql"/>
+        <env name="DB_DATABASE" value="rafin_test"/>
+
+        <!--
+            Di test, seluruh data hidup di dalam transaksi yang belum di-commit,
+            jadi koneksi kedua tidak bisa melihatnya. Pemindaian aturan berulang
+            diarahkan ke koneksi aplikasi; di produksi ia tetap memakai koneksi
+            ber-BYPASSRLS supaya bisa melihat lintas workspace.
+        -->
+        <env name="RAFIN_RECURRING_CONNECTION" value="pgsql"/>
+
+        <!--
+            Nilai uji, bukan rahasia sungguhan — bentuknya sengaja tidak
+            menyerupai token Telegram asli. Yang menjaga agar test tidak pernah
+            menyentuh api.telegram.org adalah Http::preventStrayRequests() dan
+            Http::fake() di berkas test, bukan token yang dikosongkan: klien
+            yang tidak punya token akan diam saja, dan test jadi menguji
+            ketiadaan panggilan alih-alih isinya.
+        -->
+        <env name="TELEGRAM_WEBHOOK_SECRET" value="rahasia-webhook-untuk-test-saja"/>
+        <env name="TELEGRAM_BOT_TOKEN" value="token-uji-bukan-token-asli"/>
+
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>
