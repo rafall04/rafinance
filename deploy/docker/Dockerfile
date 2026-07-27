@@ -58,6 +58,10 @@ WORKDIR /var/www/html
 
 
 # ── aset: bundel Vite ──────────────────────────────────────────────────
+#
+# Tahap ini dibangun SETELAH vendor, bukan sebelumnya, meski ditulis lebih dulu.
+# Sebabnya ada di COPY --from=vendor di bawah — dan sebab itu sendiri layak
+# dijelaskan, karena ia sempat mematikan deploy.
 FROM node:20-bookworm-slim AS aset
 
 WORKDIR /app
@@ -70,6 +74,21 @@ RUN npm ci --no-audit --no-fund
 COPY vite.config.js ./
 COPY resources ./resources
 COPY public ./public
+
+# Tema panel admin mengimpor CSS dasar Filament dari vendor/, dan memindai
+# Blade-nya untuk tahu kelas mana yang perlu dibangkitkan Tailwind.
+#
+# vendor/ TIDAK ADA di konteks build — .dockerignore mengecualikannya dengan
+# sengaja, supaya salinan lokal tidak ikut terkirim dan menimpa hasil composer
+# install. Jadi ia harus datang dari tahap vendor, bukan dari konteks.
+#
+# Ini yang membuat deploy pertama setelah temanya ditambahkan gagal dengan
+# "Can't resolve ../../../../vendor/filament/...". Build lokal tidak
+# menangkapnya karena di laptop vendor/ memang ada.
+COPY --from=vendor /var/www/html/vendor/filament ./vendor/filament
+
+# app/Filament dipindai tema untuk kelas warna yang ditulis di PHP resource.
+COPY app/Filament ./app/Filament
 
 RUN npm run build
 
