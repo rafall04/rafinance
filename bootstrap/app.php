@@ -58,6 +58,34 @@ return Application::configure(basePath: dirname(__DIR__))
                 | Request::HEADER_X_FORWARDED_PROTO,
         );
 
+        // Dua endpoint yang menerima POST dari luar peramban, dan karena itu
+        // tidak mungkin membawa token CSRF.
+        //
+        // Keduanya menjawab 419 di produksi sampai baris ini ada — dan tidak
+        // ada satu pun test yang menangkapnya, karena PreventRequestForgery
+        // melewati pemeriksaan sepenuhnya saat runningUnitTests(). Suite-nya
+        // hijau, kanalnya mati. Itu sebabnya ProksiCsrfTest di bawah menguji
+        // daftar pengecualiannya sendiri, bukan lewat request HTTP.
+        //
+        //   webhooks/telegram
+        //     Dipanggil server Telegram, bukan peramban. Keasliannya sudah
+        //     dibuktikan header rahasia yang diperiksa di controller — bukti
+        //     yang lebih kuat daripada CSRF, karena tidak bergantung pada
+        //     sesi yang memang tidak ada di sini.
+        //
+        //   app/share
+        //     Share target PWA. POST-nya disusun oleh sistem operasi saat
+        //     seseorang membagikan tangkapan layar struk dari aplikasi lain,
+        //     dan spesifikasi Web Share Target tidak menyediakan tempat untuk
+        //     menitipkan token. Risikonya diterima sadar: halaman jahat bisa
+        //     membuat satu draf di Inbox milik orang yang sedang masuk. Draf
+        //     tidak memindahkan uang dan tetap harus ditinjau pemiliknya
+        //     sebelum jadi transaksi (aturan A3).
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/telegram',
+            'app/share',
+        ]);
+
         $middleware->alias([
             'workspace' => EnsureWorkspaceMember::class,
         ]);

@@ -345,6 +345,108 @@
     }
 
     /*
+     * ------------------------------------------------------------------
+     * Halaman publik
+     * ------------------------------------------------------------------
+     *
+     * Lebih lebar dari .shell yang 480px. Shell itu ukuran aplikasi, dipilih
+     * supaya daftar transaksi terbaca sebagai kolom pembukuan. Halaman depan
+     * dibaca sebagai prosa, dan prosa selebar 480px di layar besar terlihat
+     * seperti kesalahan.
+     *
+     * 34rem menjaga baris tetap di 60-70 karakter — rentang yang membuat mata
+     * tidak kehilangan awal baris berikutnya.
+     */
+    .publik {
+        max-width: 34rem;
+        margin-inline: auto;
+        width: 100%;
+        padding-inline: 20px;
+        /* Ruang bawah untuk area gestur ponsel tanpa tombol fisik. */
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+
+    /*
+     * Tersembunyi sampai difokus keyboard. Bukan display:none — elemen yang
+     * disembunyikan begitu tidak bisa difokus sama sekali, sehingga tautannya
+     * jadi sia-sia bagi orang yang justru membutuhkannya.
+     */
+    .lewati-ke-isi {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        background-color: var(--biru-50);
+        color: var(--paper);
+        border-radius: var(--radius);
+        padding: 12px 16px;
+        z-index: 100;
+    }
+
+    .lewati-ke-isi:focus {
+        left: 12px;
+        top: 12px;
+    }
+
+    /*
+     * Judul hero. clamp() menggantikan titik henti: di layar 320px ia turun ke
+     * 30px supaya "Rapikan nanti." tetap muat dalam satu baris, dan naik
+     * sendiri sampai 44px di layar lega.
+     */
+    .hero-judul {
+        font-size: clamp(30px, 8.5vw, 44px);
+        line-height: 1.1;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        text-wrap: balance;
+    }
+
+    .peraga {
+        border: 1px solid var(--rule);
+        border-radius: var(--radius);
+        padding: 16px;
+    }
+
+    /*
+     * Gelembung pesan. Sengaja mirip Telegram — di situlah sebagian besar
+     * catatan akan diketik, dan mengenali bentuknya menjelaskan lebih cepat
+     * daripada kalimat mana pun.
+     */
+    .gelembung {
+        background-color: var(--biru-50);
+        color: var(--paper);
+        border-radius: var(--radius) var(--radius) 2px var(--radius);
+        padding: 8px 14px;
+        display: inline-block;
+        max-width: 100%;
+        word-break: break-word;
+    }
+
+    .peraga-panah {
+        color: var(--ink-soft);
+        display: flex;
+        justify-content: center;
+        padding-block: 10px;
+    }
+
+    .manfaat {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+    }
+
+    .manfaat-ikon {
+        color: var(--biru-50);
+        background-color: var(--paper-sunk);
+        border-radius: var(--radius);
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /*
      * Papan angka.
      *
      * Tiga kolom di layar tegak. Saat ponsel diputar mendatar, tinggi layar

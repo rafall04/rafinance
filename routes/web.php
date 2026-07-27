@@ -7,6 +7,7 @@ use App\Http\Controllers\App\EksporController;
 use App\Http\Controllers\App\ShareTargetController;
 use App\Http\Controllers\App\SimpanTransaksiController;
 use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\BerandaController;
 use App\Livewire\App\Akun;
 use App\Livewire\App\Anggaran;
 use App\Livewire\App\Beranda;
@@ -24,7 +25,8 @@ use App\Livewire\App\Tagihan;
 use App\Livewire\App\Tambah;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/app')->name('home');
+// Halaman depan untuk tamu; yang sudah masuk langsung ke buku kasnya.
+Route::get('/', BerandaController::class)->name('beranda');
 
 // Publik dan sengaja spesifik. Janji privasi yang tidak menyebut nama tabel
 // bukan janji, melainkan pemasaran.
