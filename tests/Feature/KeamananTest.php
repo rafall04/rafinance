@@ -189,12 +189,19 @@ it('menyembunyikan log aktivitas workspace lain', function (): void {
 });
 
 it('menyediakan halaman transparansi yang menyebut isinya secara spesifik', function (): void {
-    $halaman = $this->get('/transparansi');
+    // Yang dijaga di sini adalah janjinya, bukan kalimatnya. Kata-katanya
+    // memang pernah diganti supaya lebih mudah dibaca; yang tidak boleh
+    // hilang adalah ketiga hal ini disebut terang-terangan.
+    $halaman = $this->get('/transparansi')->assertOk();
 
-    $halaman->assertOk()
-        ->assertSee('Nominal transaksi Anda')
-        ->assertSee('Tidak ada tombol impersonate')
-        ->assertSee('Jumlah', escape: false);
+    // Nominal tidak terlihat.
+    $halaman->assertSee('Nominal transaksi Anda');
+
+    // Tidak ada cara masuk sebagai pengguna.
+    $halaman->assertSee('Kami tidak bisa masuk sebagai Anda');
+
+    // Yang terlihat hanya hitungannya, bukan isinya.
+    $halaman->assertSee('Hitungannya saja, bukan isinya');
 });
 
 it('memasang verifikasi dua langkah lewat konfirmasi kode', function (): void {

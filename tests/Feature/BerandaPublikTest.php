@@ -112,6 +112,44 @@ it('tidak memakai sintaks penting Tailwind versi lama', function (): void {
     }
 });
 
+it('menjelaskan cara kerja tanpa sinyal di halaman depan', function (): void {
+    // Ini pertanyaan pertama yang muncul soal Rafin, dan jawabannya tidak
+    // boleh bersembunyi di dokumentasi. Termasuk bagian yang paling sering
+    // disalahpahami: bahwa tidak ada yang perlu dipasang lebih dulu.
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('Tanpa sinyal')
+        ->assertSee('Tidak perlu memasang apa pun.');
+});
+
+it('tidak memakai id yang sama dua kali', function (string $jalur): void {
+    // ID ganda memutus kaitan aria-labelledby tanpa menimbulkan galat apa pun:
+    // halamannya tampil normal, hanya pembaca layar mengumumkan judul yang
+    // salah untuk sebuah bagian. Ini pernah terjadi saat dua bagian sama-sama
+    // memakai id="manfaat".
+    $html = (string) $this->get($jalur)->assertOk()->getContent();
+
+    preg_match_all('/\sid="([^"]+)"/i', $html, $cocok);
+    $ganda = array_keys(array_filter(array_count_values($cocok[1]), fn (int $n): bool => $n > 1));
+
+    expect($ganda)->toBe([], "{$jalur} memakai id ganda: ".implode(', ', $ganda));
+})->with(['/', '/transparansi']);
+
+it('menulis halaman transparansi tanpa jargon internal', function (): void {
+    // Halaman itu dibaca orang yang sedang menimbang apakah aman menaruh
+    // catatan uangnya di sini. Istilah yang datang dari dalam kepala pembuatnya
+    // menambah ragu, bukan mengurangi.
+    $html = mb_strtolower((string) $this->get('/transparansi')->assertOk()->getContent());
+
+    // Bagian utama harus bebas istilah ini. Yang teknis boleh muncul, tapi
+    // hanya di dalam <details> yang harus dibuka sendiri oleh pembacanya.
+    $utama = mb_substr($html, 0, (int) mb_strpos($html, '<details'));
+
+    foreach (['panel admin', 'row level security', 'tabel transaksi', 'rilis', 'query'] as $jargon) {
+        expect($utama)->not->toContain($jargon);
+    }
+});
+
 it('memakai satu urutan judul tanpa melompat', function (): void {
     // h1 lalu langsung h3 membuat pembaca layar mengumumkan struktur yang
     // salah, dan itu tidak terlihat sama sekali dari tampilannya.

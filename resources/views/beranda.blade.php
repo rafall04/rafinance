@@ -111,6 +111,66 @@
         </div>
     </section>
 
+    {{-- ── Manfaat ──────────────────────────────────────────────────────
+         Bagian ini menjawab "apa untungnya buat saya", dan itu pertanyaan
+         yang berbeda dari "apa bedanya dengan yang lain". Double-entry dan
+         Row Level Security adalah jawaban untuk pertanyaan kedua; keduanya
+         tidak berarti apa-apa bagi orang yang sedang menimbang apakah
+         hidupnya jadi lebih mudah. --}}
+    <section class="pt-4 pb-14" aria-labelledby="manfaat">
+        <p class="tanda">Untuk apa</p>
+        <h2 id="manfaat" class="judul-bagian prosa mt-2">
+            Tiga hal yang berubah setelah mencatat rutin
+        </h2>
+
+        <ul class="mt-7 grid gap-6 md:grid-cols-3">
+            <li>
+                <span class="manfaat-ikon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+                        <path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>
+                    </svg>
+                </span>
+                <h3 class="mt-3 text-[17px] font-semibold">Akhir bulan berhenti jadi teka-teki</h3>
+                <p class="text-ink-soft mt-1.5">
+                    "Ke mana perginya?" terjawab sendiri, tanpa Anda perlu mengingat
+                    apa pun atau mengumpulkan nota yang sudah tercecer.
+                </p>
+            </li>
+
+            <li>
+                <span class="manfaat-ikon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+                        <path d="M3 7h18"/><path d="M3 7v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7"/>
+                        <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M12 12v4"/>
+                    </svg>
+                </span>
+                <h3 class="mt-3 text-[17px] font-semibold">Tahu usaha Anda untung berapa</h3>
+                <p class="text-ink-soft mt-1.5">
+                    Uang warung dan uang pribadi berhenti tercampur. Yang selama ini
+                    terasa "ramai tapi kok tidak sisa" jadi kelihatan sebabnya.
+                </p>
+            </li>
+
+            <li>
+                <span class="manfaat-ikon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+                        <path d="M14 3v5h5"/>
+                        <path d="M19 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h9l6 6v11a1 1 0 0 1-1 1Z"/>
+                        <path d="M8 13h8"/><path d="M8 17h5"/>
+                    </svg>
+                </span>
+                <h3 class="mt-3 text-[17px] font-semibold">Angkanya siap saat ditanya</h3>
+                <p class="text-ink-soft mt-1.5">
+                    Mengajukan pinjaman, menyetor pajak, atau membagi hasil dengan
+                    rekan — laporannya sudah ada, tinggal dibuka.
+                </p>
+            </li>
+        </ul>
+    </section>
+
     {{-- ── Cara kerjanya ────────────────────────────────────────────────
          Diperagakan, bukan dijelaskan. Kalimat "input cepat" ada di setiap
          aplikasi keuangan; yang membedakan adalah melihat sendiri bahwa
@@ -175,12 +235,72 @@
         </div>
     </section>
 
-    {{-- ── Bento manfaat ────────────────────────────────────────────────
-         Tiga kartu, satu membentang. Variasi ukuran membuat kisi terbaca
-         sebagai susunan yang dipikirkan, bukan daftar yang dikotak. --}}
-    <section class="py-14" aria-labelledby="manfaat">
+    {{-- ── Tanpa sinyal ─────────────────────────────────────────────────
+         Pertanyaan yang paling sering muncul, dijawab di halaman depan alih-alih
+         disimpan di dokumentasi: apa harus memasang aplikasi dulu, dan apa
+         yang terjadi pada catatan yang belum sempat terkirim. --}}
+    <section class="py-14" aria-labelledby="sinyal">
+        <p class="tanda">Tanpa sinyal</p>
+        <h2 id="sinyal" class="judul-bagian prosa mt-2">
+            Sinyal paling sering hilang justru di tempat uang keluar
+        </h2>
+        <p class="text-ink-soft prosa mt-3">
+            Parkiran basement, pasar, jalan antarkota. Rafin tetap menerima
+            catatan Anda di sana, lalu mengurus sisanya sendiri.
+        </p>
+
+        <ol class="bento mt-7">
+            <li class="bento-kartu muncul">
+                <p class="tanda">Langkah 1</p>
+                <h3 class="text-[17px] font-semibold">Catat seperti biasa</h3>
+                <p class="text-ink-soft">
+                    Tombol simpan tidak pernah menolak, ada sinyal atau tidak.
+                    Catatannya tersimpan di ponsel Anda lebih dulu.
+                </p>
+            </li>
+
+            <li class="bento-kartu muncul">
+                <p class="tanda">Langkah 2</p>
+                <h3 class="text-[17px] font-semibold">Menunggu, dan terlihat menunggu</h3>
+                <p class="text-ink-soft">
+                    Muncul penanda kecil supaya Anda tahu persis berapa yang belum
+                    terkirim — bukan diam-diam hilang.
+                </p>
+                <p class="pita pita-kecil mt-1 self-start">
+                    <span class="titik-hidup"></span>
+                    2 catatan menunggu terkirim
+                </p>
+            </li>
+
+            <li class="bento-kartu bento-lebar muncul">
+                <p class="tanda">Langkah 3</p>
+                <h3 class="text-[17px] font-semibold">Terkirim sendiri, dan tidak pernah dua kali</h3>
+                <p class="text-ink-soft prosa">
+                    Begitu sinyal kembali, antreannya berangkat tanpa Anda perlu
+                    menekan apa pun. Setiap catatan membawa nomor uniknya sendiri,
+                    jadi kalau kiriman pertama sebenarnya sampai tapi balasannya
+                    hilang di jalan, percobaan berikutnya tidak menambah pengeluaran
+                    kedua. Untuk buku kas, itu bedanya antara berguna dan berbahaya.
+                </p>
+            </li>
+        </ol>
+
+        <p class="text-ink-soft prosa mt-6">
+            <strong class="text-ink">Tidak perlu memasang apa pun.</strong> Cukup buka
+            Rafin sekali lewat peramban, dan ia sudah bisa dipakai tanpa sinyal
+            sesudahnya. Memasangnya ke layar utama menambah ikon sendiri, pintasan
+            tekan-tahan, dan kemampuan membagikan foto struk dari aplikasi lain
+            langsung ke Rafin.
+        </p>
+    </section>
+
+    {{-- ── Bento: bagaimana ia dibangun ─────────────────────────────────
+         Ini menjawab "kenapa saya percaya", bukan "apa untungnya" — dua
+         pertanyaan berbeda yang sering dijawab dengan bagian yang sama, lalu
+         keduanya jadi setengah terjawab. --}}
+    <section class="py-14" aria-labelledby="beda">
         <p class="tanda">Yang membedakan</p>
-        <h2 id="manfaat" class="judul-bagian prosa mt-2">
+        <h2 id="beda" class="judul-bagian prosa mt-2">
             Dibangun seperti pembukuan, bukan seperti catatan belanja
         </h2>
 
@@ -212,11 +332,11 @@
                         <path d="m3.5 7 8.5 6 8.5-6"/>
                     </svg>
                 </span>
-                <h3 class="text-[17px] font-semibold">Termasuk saat sinyal hilang</h3>
+                <h3 class="text-[17px] font-semibold">Catat lewat Telegram juga</h3>
                 <p class="text-ink-soft">
-                    Web, atau kirim pesan ke bot Telegram. Kalau jaringan putus,
-                    catatan mengantre di ponsel dan terkirim sendiri begitu sinyal
-                    kembali — tanpa tergandakan.
+                    Kirim pesan ke bot, selesai. Tidak perlu membuka aplikasi apa
+                    pun — dan buku kasnya tetap satu, dari kanal mana pun Anda
+                    mencatat.
                 </p>
             </div>
 
