@@ -1,0 +1,54 @@
+# Yang tidak boleh ikut ke dalam konteks build.
+#
+# Bukan sekadar soal ukuran. `COPY . .` tanpa daftar ini akan menyalin .env
+# ke dalam lapisan image — dan lapisan image bisa dibaca siapa pun yang
+# punya image-nya, termasuk setelah berkasnya "dihapus" di lapisan berikut.
+
+.env
+.env.*
+!.env.example
+deploy/deploy.env
+auth.json
+
+.git
+.gitignore
+.gitattributes
+
+vendor
+node_modules
+public/build
+public/hot
+public/storage
+
+# Isi storage tinggal di volume, bukan di image.
+storage/app/private/*
+storage/app/public/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+!storage/**/.gitignore
+
+# Perkakas pengembangan yang tidak berguna di produksi.
+tests
+phpunit.xml
+.pest.cache
+.phpunit.cache
+.phpunit.result.cache
+scripts
+.editorconfig
+.vscode
+.idea
+README.md
+
+# Berkas deployment itu sendiri: yang dibutuhkan disalin satu per satu
+# lewat COPY yang eksplisit, jadi tidak perlu ikut lewat COPY . .
+deploy/deploy.sh
+deploy/docker-deploy.sh
+deploy/port-audit.sh
+deploy/*.template
+deploy/nginx-rafin*.conf
+deploy/rafin-queue.service
+
+Dockerfile
+.dockerignore
