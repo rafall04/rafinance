@@ -1,5 +1,5 @@
 <div>
-    <header class="rule-b flex items-center justify-between px-5 py-4">
+    <header class="layar-kepala">
         <div>
             <h1 class="judul">Akun</h1>
             <p class="text-ink-soft text-[13px]">Tempat uang Anda berada.</p>
@@ -102,12 +102,9 @@
             </form>
         @endif
     @empty
-        <section class="px-5 py-12 text-center">
-            <p class="mb-1 font-medium">Belum ada akun.</p>
-            <p class="text-ink-soft mx-auto max-w-[34ch]">
-                Mulai dari yang paling sering dipakai — biasanya Kas atau satu rekening bank.
-            </p>
-        </section>
+        <x-kosong judul="Belum ada akun." ikon="dompet">
+            Mulai dari yang paling sering dipakai — biasanya Kas atau satu rekening bank.
+        </x-kosong>
     @endforelse
 
     @if ($ditutup->isNotEmpty())

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -41,7 +42,33 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName('Rafin · Admin platform')
-            ->colors(['primary' => Color::Slate])
+
+            // Biru Rp50.000, sama dengan aksi utama di aplikasi. Slate bawaan
+            // membuat panel ini terlihat seperti produk lain yang kebetulan
+            // dipasang di domain yang sama.
+            ->colors([
+                'primary' => Color::hex('#1f6e9c'),
+                'danger' => Color::hex('#a83a48'),
+                'success' => Color::hex('#2c7959'),
+                'warning' => Color::hex('#c9a227'),
+            ])
+
+            // Font dan sudut disamakan dengan aplikasi. Berkas terpisah dari
+            // app.css: Filament membawa Tailwind-nya sendiri, dan menyatukannya
+            // akan menyeret seluruh utilitas panel ke bundel yang diunduh setiap
+            // pengguna biasa.
+            ->viteTheme('resources/css/filament/admin/theme.css')
+
+            // Harus lewat API ini, bukan lewat --font-family di CSS tema:
+            // Filament menyuntikkan fontnya sebagai gaya sebaris di <head>, dan
+            // gaya sebaris mengalahkan lembar gaya mana pun. Percobaan pertama
+            // memakai @theme dan hasilnya tetap Inter tanpa satu pun tanda
+            // bahwa override-nya diabaikan.
+            //
+            // LocalFontProvider dengan url kosong tidak memuat apa pun dari
+            // luar — @font-face Public Sans sudah ada di tema lewat fonts.css,
+            // dan yang dibutuhkan di sini hanya penetapan nama keluarganya.
+            ->font('Public Sans', provider: LocalFontProvider::class)
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\Filament\Admin\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\Filament\Admin\Pages')
             ->pages([Dashboard::class])

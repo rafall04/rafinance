@@ -1,9 +1,11 @@
 <div>
-    <header class="rule-b px-5 py-4">
+    <header class="layar-kepala">
+        <div class="min-w-0">
         <h1 class="judul">Langganan</h1>
         <p class="text-ink-soft text-[13px]">
             Semua plan Rp 0 selama masa beta.
         </p>
+        </div>
     </header>
 
     <section class="rule-b px-5 py-5">

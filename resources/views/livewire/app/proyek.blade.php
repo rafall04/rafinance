@@ -1,5 +1,5 @@
 <div>
-    <header class="rule-b flex items-center justify-between px-5 py-4">
+    <header class="layar-kepala">
         <div>
             <h1 class="judul">Proyek</h1>
             <p class="text-ink-soft text-[13px]">Untung rugi per pekerjaan.</p>
@@ -65,11 +65,8 @@
             @endif
         </section>
     @empty
-        <section class="px-5 py-12 text-center">
-            <p class="mb-1 font-medium">Belum ada proyek.</p>
-            <p class="text-ink-soft mx-auto max-w-[34ch]">
-                Berguna kalau pengeluaran Anda datang per pekerjaan — acara, pemasangan, pesanan.
-            </p>
-        </section>
+        <x-kosong judul="Belum ada proyek." ikon="map">
+            Berguna kalau pengeluaran Anda datang per pekerjaan — acara, pemasangan, pesanan.
+        </x-kosong>
     @endforelse
 </div>

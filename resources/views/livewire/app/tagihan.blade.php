@@ -1,5 +1,5 @@
 <div>
-    <header class="rule-b flex items-center justify-between px-5 py-4">
+    <header class="layar-kepala">
         <div>
             <h1 class="judul">Tagihan</h1>
             <p class="text-ink-soft text-[13px]">Siapa yang belum bayar, dan sudah berapa lama.</p>
@@ -138,11 +138,8 @@
             @endif
         </article>
     @empty
-        <section class="px-5 py-12 text-center">
-            <p class="mb-1 font-medium">Tidak ada piutang.</p>
-            <p class="text-ink-soft mx-auto max-w-[34ch]">
-                Semua tagihan sudah lunas — atau belum ada yang dibuat.
-            </p>
-        </section>
+        <x-kosong judul="Tidak ada piutang." ikon="lembar">
+            Semua tagihan sudah lunas — atau belum ada yang dibuat.
+        </x-kosong>
     @endforelse
 </div>

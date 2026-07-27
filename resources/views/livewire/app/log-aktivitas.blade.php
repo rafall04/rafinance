@@ -1,7 +1,9 @@
 <div>
-    <header class="rule-b px-5 py-4">
+    <header class="layar-kepala">
+        <div class="min-w-0">
         <h1 class="judul">Log aktivitas</h1>
         <p class="text-ink-soft text-[13px]">Setiap perubahan di buku ini, beserta pelakunya.</p>
+        </div>
     </header>
 
     {{-- Verifikasi rantai. Ada di halaman pengguna, bukan hanya di perintah
@@ -78,12 +80,9 @@
             @endif
         </article>
     @empty
-        <section class="px-5 py-12 text-center">
-            <p class="mb-1 font-medium">Belum ada aktivitas.</p>
-            <p class="text-ink-soft mx-auto max-w-[34ch]">
-                Setiap transaksi, akun, dan penguncian periode akan muncul di sini.
-            </p>
-        </section>
+        <x-kosong judul="Belum ada aktivitas." ikon="lembar">
+            Setiap transaksi, akun, dan penguncian periode akan muncul di sini.
+        </x-kosong>
     @endforelse
 
     <div class="px-5 py-4">

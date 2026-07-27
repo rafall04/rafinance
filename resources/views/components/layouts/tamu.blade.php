@@ -25,15 +25,30 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-paper text-ink">
-    <div class="shell flex min-h-dvh flex-col justify-center px-5 py-10">
+    {{-- Cahaya latar yang sama dengan halaman depan. Halaman masuk adalah layar
+         kedua yang dilihat orang setelah beranda publik, dan perpindahan dari
+         halaman yang digarap ke formulir polos terasa seperti berpindah
+         produk. --}}
+    <div class="aurora shell flex min-h-dvh flex-col justify-center px-5 py-10">
         <header class="mb-8">
-            <p class="display">Rafin</p>
+            <a href="{{ route('beranda') }}" class="tap inline-flex items-center">
+                <span class="display">Rafin</span>
+            </a>
             <p class="text-ink-soft mt-1">Buku kas untuk pribadi dan usaha kecil.</p>
         </header>
 
         <main>
             {{ $slot }}
         </main>
+
+        {{-- Jalan keluar. Tanpa ini, orang yang sampai ke /login dari tautan
+             langsung tidak punya cara mengetahui Rafin itu apa selain menekan
+             tombol kembali. --}}
+        <footer class="rule-t text-ink-soft mt-8 pt-5 text-[13px]">
+            <a href="{{ route('transparansi') }}" class="tap inline-flex items-center underline underline-offset-4">
+                Apa yang kami bisa lihat dari catatan Anda
+            </a>
+        </footer>
     </div>
 
     @livewireScriptConfig

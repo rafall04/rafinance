@@ -23,6 +23,9 @@
     </form>
 
     <p class="rule-t mt-6 pt-6">
-        <a href="{{ route('login') }}" class="text-biru">Kembali ke halaman masuk</a>
+        {{-- .tap wajib: tanpanya tautan ini hanya setinggi 17px dan meleset terus
+             di ponsel — persis yang sudah dihindari di halaman masuk, tapi
+             terlewat di sini. --}}
+        <a href="{{ route('login') }}" class="text-biru tap inline-flex items-center">Kembali ke halaman masuk</a>
     </p>
 </x-layouts.tamu>

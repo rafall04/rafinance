@@ -1,8 +1,10 @@
 <div class="flex min-h-[calc(100dvh-6rem)] flex-col">
-    <header class="rule-b flex items-center justify-between px-5 py-3">
+    <header class="layar-kepala">
+        <div class="min-w-0">
         <a href="{{ route('app.beranda') }}" wire:navigate class="tombol-halus px-3 text-[13px]">Batal</a>
         <h1 class="judul text-[17px]">Catat transaksi</h1>
         <span class="w-[62px]"></span>
+        </div>
     </header>
 
     {{-- Nominal lebih dulu. Orang membuka layar ini karena baru mengeluarkan

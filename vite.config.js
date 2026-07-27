@@ -6,7 +6,15 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+                // Tema panel admin. Berkas terpisah, bukan bagian app.css:
+                // Filament membawa Tailwind-nya sendiri dengan source(none),
+                // dan menggabungkannya akan menyeret seluruh utilitas panel ke
+                // dalam bundel yang diunduh setiap pengguna aplikasi.
+                'resources/css/filament/admin/theme.css',
+            ],
             refresh: true,
         }),
         tailwindcss(),

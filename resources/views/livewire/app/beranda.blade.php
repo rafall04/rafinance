@@ -1,5 +1,5 @@
 <div>
-    <header class="rule-b flex items-start justify-between gap-3 px-5 py-4">
+    <header class="layar-kepala">
         <div class="min-w-0">
             <p class="label">{{ $workspace?->type->label() }}</p>
             <h1 class="judul truncate">{{ $workspace?->name }}</h1>
@@ -20,12 +20,15 @@
     @if ($akunUang->isNotEmpty())
         <section class="rule-b pb-4">
             <div class="flex snap-x gap-2 overflow-x-auto px-5" role="group" aria-label="Saring per akun">
+                {{-- Keadaan terpilih ditandai warna DAN tebal huruf, lewat
+                     [aria-pressed='true'] di CSS. Warna saja gagal bagi orang
+                     yang tidak membedakannya — dan penyaring yang salah dibaca
+                     berarti melihat saldo akun yang keliru. --}}
                 <button
                     type="button"
                     wire:click="pilihAkun('')"
                     aria-pressed="{{ $akunAktif === null ? 'true' : 'false' }}"
-                    class="tap shrink-0 snap-start rounded-full border px-4 text-[13px]
-                           {{ $akunAktif === null ? 'border-transparent bg-biru text-paper' : 'border-rule text-ink-soft' }}"
+                    class="cip snap-start"
                 >
                     Semua
                 </button>
@@ -35,13 +38,10 @@
                         type="button"
                         wire:click="pilihAkun('{{ $akun->id }}')"
                         aria-pressed="{{ $akunAktif?->is($akun) ? 'true' : 'false' }}"
-                        class="tap shrink-0 snap-start rounded-full border px-4 text-[13px]
-                               {{ $akunAktif?->is($akun) ? 'border-transparent bg-biru text-paper' : 'border-rule' }}"
+                        class="cip snap-start"
                     >
-                        <span class="flex items-center gap-2">
-                            <span class="h-2 w-2 shrink-0 rounded-full" style="background: {{ $akun->color() }}"></span>
-                            {{ $akun->name }}
-                        </span>
+                        <span class="h-2 w-2 shrink-0 rounded-full" style="background: {{ $akun->color() }}"></span>
+                        {{ $akun->name }}
                     </button>
                 @endforeach
             </div>
@@ -107,11 +107,8 @@
             </ul>
         </section>
     @empty
-        <section class="px-5 py-12 text-center">
-            <p class="mb-1 font-medium">Belum ada transaksi.</p>
-            <p class="text-ink-soft mx-auto max-w-[34ch]">
-                Catat lewat bot atau tekan tombol + di bawah.
-            </p>
-        </section>
+        <x-kosong judul="Belum ada transaksi." ikon="lembar">
+            Catat lewat bot atau tekan tombol + di bawah.
+        </x-kosong>
     @endforelse
 </div>

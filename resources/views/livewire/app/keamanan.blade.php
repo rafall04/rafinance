@@ -1,7 +1,9 @@
 <div>
-    <header class="rule-b px-5 py-4">
+    <header class="layar-kepala">
+        <div class="min-w-0">
         <h1 class="judul">Keamanan</h1>
         <p class="text-ink-soft text-[13px]">Siapa yang bisa membuka buku Anda.</p>
+        </div>
     </header>
 
     @if (session('kabar'))

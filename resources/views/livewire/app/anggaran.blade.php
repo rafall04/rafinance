@@ -1,5 +1,5 @@
 <div>
-    <header class="rule-b flex items-center justify-between px-5 py-4">
+    <header class="layar-kepala">
         <div>
             <h1 class="judul">Anggaran</h1>
             <p class="text-ink-soft text-[13px]">Batas belanja per kategori.</p>
@@ -101,12 +101,9 @@
             @endif
         </section>
     @empty
-        <section class="px-5 py-12 text-center">
-            <p class="mb-1 font-medium">Belum ada anggaran.</p>
-            <p class="text-ink-soft mx-auto max-w-[34ch]">
-                Mulai dari satu kategori yang paling sering bikin kaget di akhir bulan.
-            </p>
-        </section>
+        <x-kosong judul="Belum ada anggaran." ikon="target">
+            Mulai dari satu kategori yang paling sering bikin kaget di akhir bulan.
+        </x-kosong>
     @endforelse
 
     @if ($target->isNotEmpty())

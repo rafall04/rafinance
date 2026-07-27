@@ -1,7 +1,9 @@
 <div>
-    <header class="rule-b px-5 py-4">
+    <header class="layar-kepala">
+        <div class="min-w-0">
         <h1 class="judul">Inbox</h1>
         <p class="text-ink-soft text-[13px]">Yang masuk tapi belum lengkap.</p>
+        </div>
     </header>
 
     @if (session('kabar'))
@@ -87,11 +89,8 @@
             @endif
         </article>
     @empty
-        <section class="px-5 py-12 text-center">
-            <p class="mb-1 font-medium">Inbox kosong.</p>
-            <p class="text-ink-soft mx-auto max-w-[34ch]">
-                Semua yang masuk sudah lengkap. Kirim apa saja ke bot dan yang belum jelas akan mendarat di sini.
-            </p>
-        </section>
+        <x-kosong judul="Inbox kosong." ikon="inbox">
+            Semua yang masuk sudah lengkap. Kirim apa saja ke bot dan yang belum jelas akan mendarat di sini.
+        </x-kosong>
     @endforelse
 </div>

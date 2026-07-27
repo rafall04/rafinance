@@ -1,0 +1,108 @@
+/*
+ * Tema panel admin Rafin.
+ *
+ * Sebelumnya /admin memakai tampilan bawaan Filament: font Inter dari paket,
+ * abu-abu Slate, sudut dan bayangan yang berbeda dari aplikasi. Hasilnya dua
+ * produk yang terlihat seperti dibuat dua tim berbeda, padahal satu.
+ *
+ * Yang disatukan di sini hanya lapisan permukaan — warna, huruf, sudut. Struktur
+ * Filament dibiarkan apa adanya: ia sudah dipikirkan matang untuk tabel padat,
+ * dan menulis ulangnya berarti menanggung sendiri setiap pembaruan berikutnya.
+ *
+ * CATATAN ATURAN A5. Tema ini murni tampilan dan tidak boleh berkembang jadi
+ * tempat menambah kolom, widget, atau apa pun yang membaca data finansial.
+ * Panel admin tidak punya jalan ke sana, dan itu dijaga arch test yang memindai
+ * app/Filament — bukan berkas ini.
+ */
+
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*.php';
+@source '../../../../resources/views/filament/**/*.blade.php';
+@source '../../../../vendor/filament/**/*.blade.php';
+
+/* Font yang sama dengan aplikasi, di-host sendiri. Bukan Inter dari paket:
+   satu berkas font tambahan berarti unduhan tambahan untuk halaman yang
+   dibuka pengelola dari mana saja, termasuk dari jaringan seluler. */
+@import '../../fonts.css';
+
+@theme {
+    --font-family: 'Public Sans';
+    --mono-font-family: 'IBM Plex Mono';
+}
+
+/*
+ * Token Rafin dibawa masuk supaya angka dan lencana di panel memakai warna
+ * yang sama persis dengan yang dilihat pengguna di aplikasinya.
+ */
+:root {
+    --rafin-biru: #1f6e9c;
+    --rafin-hijau: #2c7959;
+    --rafin-merah: #a83a48;
+    --rafin-rule: #e2e2da;
+}
+
+.dark {
+    --rafin-biru: #56a9d6;
+    --rafin-hijau: #4fb98a;
+    --rafin-merah: #e4707e;
+    --rafin-rule: #2a343f;
+}
+
+/*
+ * Sudut disamakan dengan aplikasi (10px), bukan sudut bawaan Filament yang
+ * lebih tumpul. Perbedaan sudut adalah hal yang tidak disadari orang tapi
+ * langsung terasa sebagai "ini bukan aplikasi yang tadi".
+ */
+.fi-btn,
+.fi-input-wrp,
+.fi-badge {
+    border-radius: 10px;
+}
+
+/*
+ * Angka di tabel admin memakai lebar seragam.
+ *
+ * Ini bukan kosmetik. Kolom seperti "jumlah transaksi" dan "besar penyimpanan"
+ * hanya bisa dibandingkan sekilas kalau digitnya berbaris. Tanpa tabular-nums,
+ * 1.111 terlihat lebih pendek daripada 999 dan mata tertipu.
+ */
+.fi-ta-text-item-label:has(+ *),
+.fi-ta-col-wrp [class*='text-right'],
+.fi-in-text {
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Garis fokus yang sama dengan aplikasi. Filament punya cincin fokusnya
+ * sendiri; menyeragamkannya membuat perpindahan antara /app dan /admin tidak
+ * terasa seperti berpindah produk.
+ */
+.fi-btn:focus-visible,
+.fi-link:focus-visible,
+.fi-input:focus-visible {
+    outline: 2px solid var(--rafin-biru);
+    outline-offset: 2px;
+}
+
+/*
+ * Banner peringatan A5 di atas setiap halaman. Ia sengaja tidak bisa ditutup,
+ * jadi ia harus terbaca tenang — bukan seperti galat yang bikin panik setiap
+ * kali panel dibuka.
+ */
+.rafin-banner-admin {
+    background-color: var(--rafin-biru);
+    /* Teks kertas di atas biru, sama seperti tombol utama di aplikasi. Rasionya
+       5,4:1 di mode terang; di mode gelap birunya diangkat dan tetap di atas
+       ambang, karena keduanya berpindah bersama. */
+    color: #fbfbf9;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    text-align: center;
+}
+
+.dark .rafin-banner-admin {
+    /* Biru terang di mode gelap butuh teks gelap, bukan terang. */
+    color: #12181f;
+}

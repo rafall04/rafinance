@@ -1,9 +1,11 @@
 <div>
-    <header class="rule-b px-5 py-4">
+    <header class="layar-kepala">
+        <div class="min-w-0">
         <h1 class="judul">Laporan</h1>
         <p class="text-ink-soft text-[13px]">
             {{ $dari->translatedFormat('j M Y') }} – {{ $sampai->translatedFormat('j M Y') }}
         </p>
+        </div>
     </header>
 
     <section class="rule-b py-3">

@@ -761,3 +761,253 @@
         }
     }
 }
+
+
+/*
+ * ---------------------------------------------------------------------------
+ * Lapisan layar aplikasi
+ * ---------------------------------------------------------------------------
+ *
+ * Ditambahkan setelah halaman depan dirancang ulang, karena layar aplikasi jadi
+ * terlihat lebih polos daripada halaman yang mengiklankannya — kesan yang buruk
+ * persis pada orang yang sudah memutuskan mencoba.
+ *
+ * Semuanya kelas bersama, bukan tambalan per halaman. Kedua puluh dua Blade di
+ * aplikasi ini memakai .kartu, .judul, .label yang sama, jadi memperkuat
+ * lapisan ini mengangkat semuanya sekaligus — dan yang lebih penting, menjaga
+ * mereka tetap seragam saat halaman berikutnya ditambahkan.
+ */
+@layer components {
+
+    /* Wadah layar. Padding mendatar yang seragam di seluruh aplikasi; sebelumnya
+       tiap halaman menulis px-5 sendiri dan sebagian terlewat. */
+    .layar {
+        padding-inline: 20px;
+    }
+
+    /*
+     * Kepala layar. Menempel di atas saat digulir supaya nama buku kas dan
+     * tombol utamanya tetap terjangkau di daftar transaksi yang panjang.
+     *
+     * Latarnya buram, bukan pekat: baris transaksi yang lewat di belakangnya
+     * memberi tahu bahwa halamannya sedang bergerak. Yang tidak mendukung
+     * backdrop-filter tetap mendapat latar pekat lewat @supports di bawah.
+     */
+    .layar-kepala {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--rule);
+        background-color: color-mix(in oklab, var(--paper) 86%, transparent);
+        backdrop-filter: blur(10px);
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+        .layar-kepala {
+            background-color: var(--paper);
+        }
+    }
+
+    /*
+     * Petak angka. Dipakai untuk ringkasan masuk/keluar/sisa di beranda,
+     * laporan, dan anggaran.
+     *
+     * grid-cols dengan minmax(0,1fr) — bukan flex — supaya nominal panjang
+     * seperti Rp 12.450.000 memotong dirinya sendiri alih-alih mendorong petak
+     * sebelahnya keluar layar.
+     */
+    .petak-baris {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .petak {
+        background-color: var(--paper-sunk);
+        border: 1px solid var(--rule);
+        border-radius: 14px;
+        padding: 12px 14px;
+        min-width: 0;
+    }
+
+    .petak-label {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /*
+     * Kartu yang bisa ditekan. Umpan balik tekan wajib: tanpa itu ketukan di
+     * jaringan lambat terasa seperti tidak terjadi apa-apa, dan orang menekan
+     * dua kali.
+     *
+     * Yang dianimasikan hanya transform — bukan padding atau ukuran — supaya
+     * tidak ada satu pun tetangganya yang ikut bergeser.
+     */
+    .kartu-aksi {
+        display: block;
+        background-color: var(--paper-sunk);
+        border: 1px solid var(--rule);
+        border-radius: 14px;
+        padding: 14px 16px;
+        min-height: var(--tap-min);
+        transition: transform 140ms ease-out, background-color 140ms ease-out;
+    }
+
+    .kartu-aksi:active {
+        transform: scale(0.985);
+        background-color: color-mix(in oklab, var(--paper-sunk) 88%, var(--ink));
+    }
+
+    /* Baris daftar yang bisa ditekan. Sama, tanpa kartu. */
+    .baris-tekan {
+        transition: background-color 140ms ease-out;
+    }
+
+    .baris-tekan:active {
+        background-color: var(--paper-sunk);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .kartu-aksi,
+        .baris-tekan {
+            transition: none;
+        }
+
+        .kartu-aksi:active {
+            transform: none;
+        }
+    }
+
+    /*
+     * Keadaan kosong.
+     *
+     * Layar kosong tanpa penjelasan adalah kegagalan yang paling sering
+     * terlewat, karena ia hanya terlihat oleh pengguna baru — dan pengembang
+     * hampir tidak pernah jadi pengguna baru lagi. Setiap keadaan kosong di
+     * Rafin harus mengatakan apa yang belum ada DAN apa yang bisa dilakukan.
+     */
+    .kosong {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 6px;
+        padding: 48px 20px;
+    }
+
+    .kosong-ikon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--paper-sunk);
+        border: 1px solid var(--rule);
+        color: var(--ink-soft);
+        margin-bottom: 6px;
+    }
+
+    .kosong-judul {
+        font-weight: 600;
+    }
+
+    .kosong-teks {
+        color: var(--ink-soft);
+        max-width: 34ch;
+    }
+
+    /*
+     * Cip penyaring. Sebelumnya ditulis ulang sebagai untaian kelas Tailwind di
+     * dalam beranda, yang berarti versi keduanya di halaman lain pasti berbeda
+     * tipis. Keadaan terpilih ditandai warna DAN tebal huruf: warna saja gagal
+     * bagi sebagian orang.
+     */
+    .cip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        /*
+         * 44px penuh, bukan 36 dengan area ketuk yang diperluas.
+         *
+         * Versi pertama memakai ::after ber-inset negatif untuk melebarkan
+         * wilayah sentuh tanpa menggemukkan cipnya. Itu tidak bekerja: wadah
+         * cip menggulir mendatar, dan begitu satu sumbu diberi overflow auto,
+         * peramban ikut memotong sumbu satunya. Perluasannya terpotong habis.
+         *
+         * Ketahuan hanya karena diuji dengan elementFromPoint di tepi atas dan
+         * bawah — bukan dengan mengukur kotak elemennya, yang melaporkan 36px
+         * dan tidak memberi tahu apa pun soal wilayah yang benar-benar bisa
+         * disentuh.
+         */
+        min-height: var(--tap-min);
+        padding-inline: 14px;
+        border-radius: 999px;
+        border: 1px solid var(--rule);
+        color: var(--ink-soft);
+        font-size: 13px;
+        white-space: nowrap;
+        transition: background-color 140ms ease-out, color 140ms ease-out;
+    }
+
+    .cip[aria-pressed='true'] {
+        background-color: var(--biru-50);
+        border-color: transparent;
+        color: var(--paper);
+        font-weight: 600;
+    }
+
+    /*
+     * Kerangka muat. Dipakai saat menunggu lebih dari sekejap, menggantikan
+     * pemintal — bentuk yang sudah menyerupai isinya membuat tunggu terasa
+     * lebih pendek daripada lingkaran berputar.
+     */
+    .rangka {
+        background: linear-gradient(
+            90deg,
+            var(--paper-sunk) 0%,
+            color-mix(in oklab, var(--paper-sunk) 60%, var(--rule)) 50%,
+            var(--paper-sunk) 100%
+        );
+        background-size: 200% 100%;
+        border-radius: 8px;
+        animation: rangka-geser 1.4s ease-in-out infinite;
+    }
+
+    @keyframes rangka-geser {
+        from { background-position: 200% 0; }
+        to   { background-position: -200% 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .rangka {
+            animation: none;
+        }
+    }
+
+    /*
+     * Pemisah bagian di dalam layar. Tiga tingkat jarak, dipakai konsisten:
+     * 8px di dalam kelompok, 20px antar kelompok, 32px antar bagian besar.
+     * Sebelumnya tiap halaman memilih sendiri dan hasilnya tidak seirama.
+     */
+    .bagian {
+        padding-block: 20px;
+    }
+
+    .bagian-rapat {
+        padding-block: 12px;
+    }
+}
