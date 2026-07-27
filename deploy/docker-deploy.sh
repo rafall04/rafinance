@@ -192,15 +192,28 @@ kode="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT_APP}/up"
 oke "/up menjawab 200"
 
 # Aturan A4 tidak boleh hanya diasumsikan berlaku. Kalau role aplikasi
-# ternyata bisa melewati RLS, setiap uji isolasi jadi tidak berarti.
-bypass="$(docker exec rafin-web php -r '
-    $p = new PDO(sprintf("pgsql:host=%s;port=%s;dbname=%s", getenv("DB_HOST"), getenv("DB_PORT"), getenv("DB_DATABASE")),
-                 getenv("DB_USERNAME"), getenv("DB_PASSWORD"));
-    $r = $p->query("SELECT rolbypassrls::int || rolsuper::int FROM pg_roles WHERE rolname = current_user")->fetchColumn();
-    echo $r;
-' 2>/dev/null || echo '??')"
-[ "$bypass" = "00" ] || mati "Role aplikasi punya BYPASSRLS atau SUPERUSER (nilai: $bypass). Aturan A4 tidak berlaku."
-oke 'role aplikasi tanpa BYPASSRLS dan tanpa SUPERUSER'
+# ternyata bisa melewati RLS, setiap uji isolasi jadi tidak berarti — ia
+# akan tetap lulus, hanya tidak lagi menguji apa pun.
+#
+# Ditanyakan lewat PHP dengan kredensial aplikasi yang sungguhan, bukan
+# lewat psql sebagai superuser: yang ingin dibuktikan adalah sifat role
+# yang benar-benar dipakai Rafin saat melayani permintaan.
+a4="$(docker exec rafin-web php -r '
+    $p = new PDO(
+        sprintf("pgsql:host=%s;port=%s;dbname=%s", getenv("DB_HOST"), getenv("DB_PORT"), getenv("DB_DATABASE")),
+        getenv("DB_USERNAME"),
+        getenv("DB_PASSWORD"),
+    );
+    // Tanpa literal teks sama sekali: kode ini hidup di dalam kutip tunggal
+    // shell, dan PostgreSQL memakai kutip tunggal untuk string sementara
+    // kutip ganda menandai nama kolom. Boolean yang dicor ke int menghindari
+    // keduanya. 0 berarti aman.
+    echo $p->query(
+        "SELECT (rolsuper OR rolbypassrls)::int FROM pg_roles WHERE rolname = current_user"
+    )->fetchColumn();
+' 2>&1 || true)"
+[ "$a4" = "0" ] || mati "Role aplikasi bisa melewati RLS, atau pemeriksaannya sendiri gagal. Jawaban: ${a4:-kosong}"
+oke 'role aplikasi tanpa BYPASSRLS dan tanpa SUPERUSER (A4)'
 
 jml="$(docker exec rafin-web php artisan migrate:status --database=pgsql_migrate 2>/dev/null | grep -c 'Ran' || echo 0)"
 oke "$jml migration terpasang"
