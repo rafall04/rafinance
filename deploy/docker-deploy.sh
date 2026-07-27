@@ -74,7 +74,7 @@ else
     # kegagalan yang sulit dilacak.
     acak() { openssl rand -hex 24; }
 
-    DOMAIN="${DOMAIN:-rafin.raf.my.id}"
+    DOMAIN="${DOMAIN:-rafinance.raf.my.id}"
 
     umask 077
     cat > "$BERKAS_ENV" <<EOF
