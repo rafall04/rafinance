@@ -349,28 +349,31 @@
      * Halaman publik
      * ------------------------------------------------------------------
      *
-     * Lebih lebar dari .shell yang 480px. Shell itu ukuran aplikasi, dipilih
-     * supaya daftar transaksi terbaca sebagai kolom pembukuan. Halaman depan
-     * dibaca sebagai prosa, dan prosa selebar 480px di layar besar terlihat
-     * seperti kesalahan.
+     * Arah rasanya: buku kas yang digarap rapi. Kertas, warna uang kertas,
+     * angka presisi. Kedalaman dibangun dari lapisan tipis dan garis tegas,
+     * bukan dari kaca buram dan cahaya. Rafin adalah pembukuan, dan pembukuan
+     * yang tampil seperti dasbor kripto justru menurunkan kepercayaan orang
+     * yang sedang mempertimbangkan menaruh catatan uangnya di sini.
      *
-     * 34rem menjaga baris tetap di 60-70 karakter — rentang yang membuat mata
-     * tidak kehilangan awal baris berikutnya.
+     * Seluruh kekayaan visual di bawah dibuat dari CSS dan SVG sebaris. Tidak
+     * ada satu pun gambar raster: sasarannya Android kelas bawah berkuota
+     * tipis, dan satu tangkapan layar ponsel yang layak sudah lebih berat
+     * daripada seluruh halaman ini.
      */
     .publik {
-        max-width: 34rem;
+        max-width: 60rem;
         margin-inline: auto;
         width: 100%;
         padding-inline: 20px;
-        /* Ruang bawah untuk area gestur ponsel tanpa tombol fisik. */
         padding-bottom: max(24px, env(safe-area-inset-bottom));
     }
 
-    /*
-     * Tersembunyi sampai difokus keyboard. Bukan display:none — elemen yang
-     * disembunyikan begitu tidak bisa difokus sama sekali, sehingga tautannya
-     * jadi sia-sia bagi orang yang justru membutuhkannya.
-     */
+    /* Prosa tetap sempit meski wadahnya lebar. Baris sepanjang 60rem tidak
+       terbaca: mata kehilangan awal baris berikutnya. */
+    .prosa {
+        max-width: 34rem;
+    }
+
     .lewati-ke-isi {
         position: absolute;
         left: -9999px;
@@ -388,37 +391,235 @@
     }
 
     /*
-     * Judul hero. clamp() menggantikan titik henti: di layar 320px ia turun ke
-     * 30px supaya "Rapikan nanti." tetap muat dalam satu baris, dan naik
-     * sendiri sampai 44px di layar lega.
+     * Cahaya latar: dua noda warna uang kertas pada alpha rendah, di belakang
+     * hero. Ia yang membuat halaman tidak terbaca sebagai selembar kertas
+     * kosong, dan harganya nol byte tambahan.
      */
-    .hero-judul {
-        font-size: clamp(30px, 8.5vw, 44px);
-        line-height: 1.1;
-        font-weight: 700;
-        letter-spacing: -0.03em;
-        text-wrap: balance;
+    .aurora {
+        position: relative;
+        isolation: isolate;
     }
 
-    .peraga {
-        border: 1px solid var(--rule);
-        border-radius: var(--radius);
-        padding: 16px;
+    .aurora::before {
+        content: '';
+        position: absolute;
+        /* Kotaknya TIDAK boleh menjulur ke samping. Versi sebelumnya memakai
+           inset -30% supaya cahayanya meluap, dan itu menambah 81px lebar
+           gulir di layar 375px — geser mendatar yang tidak terlihat sebagai
+           apa pun kecuali halaman yang terasa goyah saat disentuh.
+           Pseudo-element juga tak terjaring querySelectorAll, jadi pemindai
+           luberan biasa melaporkan "tidak ada pelaku" sambil tetap merah.
+
+           Efek meluapnya dipertahankan dengan cara lain: titik pusat radial
+           digeser ke luar kotak lewat persentase negatif dan di atas 100%.
+           Yang tampak hanya tepinya, persis seperti maksudnya, tanpa satu
+           piksel pun melewati batas. */
+        inset: -12% 0 auto;
+        height: 440px;
+        z-index: -1;
+        pointer-events: none;
+        opacity: 0.5;
+        background:
+            radial-gradient(58% 62% at -8% 26%, color-mix(in oklab, var(--biru-50) 24%, transparent), transparent 70%),
+            radial-gradient(52% 56% at 106% 6%, color-mix(in oklab, var(--hijau-20) 20%, transparent), transparent 70%);
+    }
+
+    /* Ditipiskan di mode gelap: warna terang di atas latar pekat jauh lebih
+       menonjol daripada di atas kertas. */
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) .aurora::before {
+            opacity: 0.3;
+        }
+    }
+
+    :root[data-theme='dark'] .aurora::before {
+        opacity: 0.3;
+    }
+
+    /* Label kecil di atas judul bagian. Memberi irama tanpa menambah satu
+       kalimat pun yang harus dibaca. */
+    .tanda {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+    }
+
+    .pita {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--hijau-20);
+        background-color: color-mix(in oklab, var(--hijau-20) 12%, transparent);
+        border: 1px solid color-mix(in oklab, var(--hijau-20) 28%, transparent);
+        border-radius: 999px;
+        padding: 6px 12px;
+    }
+
+    .titik-hidup {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background-color: currentColor;
+        flex-shrink: 0;
+    }
+
+    /* Varian pita. Ditulis sebagai kelas, bukan sebagai nilai arbitrer
+       Tailwind: color-mix() di dalam kurung siku menuntut garis bawah
+       pengganti spasi dan gagal diam-diam kalau satu saja terlewat. */
+    .pita-merah {
+        color: var(--merah-100);
+        background-color: color-mix(in oklab, var(--merah-100) 12%, transparent);
+        border-color: color-mix(in oklab, var(--merah-100) 28%, transparent);
+    }
+
+    .pita-kecil {
+        font-size: 11px;
+        padding: 4px 10px;
+        gap: 6px;
+    }
+
+    .pita-kecil .titik-hidup {
+        width: 5px;
+        height: 5px;
+    }
+
+    /* .nominal rata kanan supaya kolom angka berbaris di daftar transaksi.
+       Saldo besar berdiri sendiri dan justru harus rata kiri. */
+    .nominal-kiri {
+        text-align: left;
     }
 
     /*
-     * Gelembung pesan. Sengaja mirip Telegram — di situlah sebagian besar
-     * catatan akan diketik, dan mengenali bentuknya menjelaskan lebih cepat
-     * daripada kalimat mana pun.
+     * Public Sans adalah font variabel 400-700, jadi bobot penuh dengan
+     * tracking rapat sudah memberi kehadiran yang cukup — tanpa menambah satu
+     * berkas font pun, yang merupakan cara termahal membuat halaman terlihat
+     * digarap.
      */
+    .hero-judul {
+        font-size: clamp(34px, 8.6vw, 58px);
+        line-height: 1.05;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        text-wrap: balance;
+    }
+
+    .hero-judul em {
+        font-style: normal;
+        color: var(--biru-50);
+    }
+
+    .judul-bagian {
+        font-size: clamp(24px, 5vw, 32px);
+        line-height: 1.18;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        text-wrap: balance;
+    }
+
+    /*
+     * Kerangka ponsel. Isinya bukan gambar melainkan potongan antarmuka Rafin
+     * yang sungguhan, digambar ulang dengan token warna yang sama. Karena itu
+     * ia ikut berganti ke mode gelap sendiri, tetap tajam di kerapatan layar
+     * berapa pun, dan berbobot sekitar dua kilobyte HTML alih-alih seratus
+     * kilobyte PNG.
+     */
+    .ponsel {
+        width: 100%;
+        max-width: 264px;
+        border: 8px solid var(--ink);
+        border-radius: 34px;
+        background-color: var(--paper);
+        padding: 10px 10px 14px;
+        box-shadow:
+            0 1px 2px rgb(0 0 0 / 0.06),
+            0 14px 30px -10px rgb(0 0 0 / 0.24);
+    }
+
+    .ponsel-poni {
+        width: 84px;
+        height: 5px;
+        border-radius: 999px;
+        background-color: var(--ink);
+        opacity: 0.8;
+        margin: 0 auto 12px;
+    }
+
+    .baris-transaksi {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        padding-block: 8px;
+        border-top: 1px solid var(--rule);
+        font-size: 12px;
+        line-height: 16px;
+    }
+
+    /*
+     * Bento. Satu kolom di ponsel, dua di layar lega, dengan satu kartu
+     * membentang penuh. Variasi ukuran itulah yang membuat kisi terbaca
+     * sebagai susunan yang dipikirkan, bukan sebagai daftar yang dikotak.
+     */
+    .bento {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 700px) {
+        .bento {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .bento-lebar {
+            grid-column: 1 / -1;
+        }
+    }
+
+    .bento-kartu {
+        background-color: var(--paper-sunk);
+        border: 1px solid var(--rule);
+        border-radius: 16px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .manfaat-ikon {
+        color: var(--biru-50);
+        background-color: var(--paper);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .peraga {
+        background-color: var(--paper-sunk);
+        border: 1px solid var(--rule);
+        border-radius: 16px;
+        padding: 18px;
+    }
+
     .gelembung {
         background-color: var(--biru-50);
         color: var(--paper);
         border-radius: var(--radius) var(--radius) 2px var(--radius);
-        padding: 8px 14px;
+        padding: 9px 14px;
         display: inline-block;
         max-width: 100%;
         word-break: break-word;
+        font-weight: 500;
     }
 
     .peraga-panah {
@@ -428,22 +629,51 @@
         padding-block: 10px;
     }
 
-    .manfaat {
-        display: flex;
-        gap: 14px;
-        align-items: flex-start;
+    /*
+     * Muncul saat digulir. animation-timeline milik CSS, bukan JavaScript:
+     * peramban yang belum mendukungnya tidak menjalankan apa pun dan isinya
+     * langsung terlihat — yang memang keadaan yang benar.
+     *
+     * HANYA dipasang pada elemen yang lebih pendek daripada layar, dan itu
+     * bukan selera melainkan syarat. Fase `entry` mengukur perjalanan sebuah
+     * elemen dari mulai menyentuh tepi bawah viewport sampai masuk seluruhnya.
+     * Elemen yang lebih tinggi daripada viewport tidak pernah "masuk
+     * seluruhnya", sehingga kemajuannya mandek di dekat nol dan ia bertahan
+     * di opacity 0 meski sudah memenuhi layar. Yang terlihat pengguna bukan
+     * animasi yang belum jalan, melainkan halaman kosong.
+     *
+     * Karena itu kelas ini dipakai pada kartu, bukan pada bagian.
+     */
+    @supports (animation-timeline: view()) {
+        @media (prefers-reduced-motion: no-preference) {
+            .muncul {
+                animation: naik-halus linear both;
+                animation-timeline: view();
+                /* Selesai saat baru sepertiga masuk: reveal yang menuntut
+                   digulir jauh dulu terbaca sebagai halaman yang rusak. */
+                animation-range: entry 0% entry 30%;
+            }
+        }
     }
 
-    .manfaat-ikon {
-        color: var(--biru-50);
-        background-color: var(--paper-sunk);
-        border-radius: var(--radius);
-        flex-shrink: 0;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    /*
+     * Hanya transform. Tidak ada opacity di sini, dan itu keputusan yang
+     * disengaja.
+     *
+     * Versi yang memudar terlihat lebih halus sampai seseorang berhenti
+     * menggulir di tengah, atau membuka halaman di peramban yang menghitung
+     * rentangnya sedikit berbeda — lalu yang tampak bukan animasi yang belum
+     * jalan, melainkan halaman yang gagal memuat. Untuk halaman depan sebuah
+     * aplikasi keuangan, kesan itu jauh lebih mahal daripada kehalusan yang
+     * ditukarnya.
+     *
+     * Dengan transform saja, kegagalan terburuknya adalah kartu yang duduk
+     * 12px lebih rendah. Tidak ada yang menyadarinya, dan tidak ada satu kata
+     * pun yang hilang.
+     */
+    @keyframes naik-halus {
+        from { transform: translateY(12px); }
+        to   { transform: none; }
     }
 
     /*

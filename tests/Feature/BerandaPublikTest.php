@@ -82,6 +82,36 @@ it('menautkan ke halaman transparansi', function (): void {
     $this->get('/transparansi')->assertOk();
 });
 
+it('tidak memasang animasi gulir pada elemen setinggi layar', function (): void {
+    // Ini pernah terjadi dan tidak terlihat sebagai animasi yang salah,
+    // melainkan sebagai halaman kosong.
+    //
+    // animation-timeline: view() dengan rentang `entry` mengukur perjalanan
+    // elemen dari menyentuh tepi bawah viewport sampai masuk seluruhnya.
+    // Elemen yang lebih tinggi daripada layar tidak pernah masuk seluruhnya,
+    // jadi kemajuannya mandek dan ia bertahan di keadaan awal meski sudah
+    // memenuhi layar. Bagian <section> hampir selalu setinggi itu.
+    $html = (string) file_get_contents(resource_path('views/beranda.blade.php'));
+
+    preg_match_all('/<section[^>]*class="[^"]*\bmuncul\b[^"]*"/i', $html, $cocok);
+
+    expect($cocok[0])->toBe([], 'muncul dipasang pada <section>: '.implode(' | ', $cocok[0]));
+});
+
+it('tidak memakai sintaks penting Tailwind versi lama', function (): void {
+    // Tailwind 4 memakai "!" sebagai akhiran (text-left!), bukan awalan.
+    // Bentuk lama tidak menimbulkan galat apa pun — utilitasnya hanya diam
+    // saja tidak berlaku, dan itu ketahuan jauh belakangan.
+    foreach (['views/beranda.blade.php', 'views/components/layouts/publik.blade.php'] as $berkas) {
+        $isi = (string) file_get_contents(resource_path($berkas));
+
+        expect(preg_match('/class="[^"]*(?:^|\s)![a-z\[]/i', $isi))->toBe(
+            0,
+            "{$berkas} memakai awalan ! milik Tailwind 3. Versi 4 memakai akhiran.",
+        );
+    }
+});
+
 it('memakai satu urutan judul tanpa melompat', function (): void {
     // h1 lalu langsung h3 membuat pembaca layar mengumumkan struktur yang
     // salah, dan itu tidak terlihat sama sekali dari tampilannya.
