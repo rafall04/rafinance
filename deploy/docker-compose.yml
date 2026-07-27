@@ -71,6 +71,12 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    environment:
+      # Redis sendiri tidak membaca variabel ini — ia menerima sandinya
+      # lewat --requirepass di bawah. Yang membutuhkannya adalah healthcheck,
+      # yang berjalan sebagai shell DI DALAM kontainer dan karena itu hanya
+      # melihat environment kontainer, bukan nilai yang disisipkan compose.
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     command: >
       redis-server
       --requirepass ${REDIS_PASSWORD}
