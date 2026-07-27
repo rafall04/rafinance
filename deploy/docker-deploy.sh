@@ -36,26 +36,37 @@ oke "docker $(docker --version | awk '{print $3}' | tr -d ,) · compose $(docker
 # dipakai orang lain, compose akan gagal di tengah dan meninggalkan
 # sebagian kontainer hidup — lebih baik berhenti sekarang.
 tebal 'Memeriksa bentrok port'
-sudah_dipakai() {
-    local port="$1"
-    # Kontainer Rafin sendiri tidak dihitung sebagai bentrokan: skrip ini
-    # memang dijalankan berulang di atas susunan yang sudah berjalan.
-    ss -tlnp 2>/dev/null | grep -E "[:.]${port}\b" | grep -qv 'rafin' && return 0
-    return 1
-}
-for p in "$PORT_APP" "$PORT_VHOST"; do
-    pemakai="$(ss -tlnp 2>/dev/null | grep -E "[:.]${p}\b" || true)"
-    if [ -n "$pemakai" ]; then
-        if docker ps --format '{{.Names}} {{.Ports}}' 2>/dev/null | grep -q "rafin.*:${p}->"; then
-            oke "$p sudah dipakai Rafin sendiri"
-        else
-            printf '%s\n' "$pemakai" >&2
-            mati "Port $p sudah dipakai proses lain. Ubah PORT di docker-compose.yml dan vhost nginx."
-        fi
-    else
-        oke "$p bebas"
+
+# Skrip ini dijalankan berulang di atas susunan yang sudah hidup, jadi "port
+# terpakai" saja bukan bentrokan. Yang menentukan adalah SIAPA yang memakainya.
+#
+#   3400  seharusnya kontainer rafin-web
+#   8095  seharusnya nginx, yang memang menaruh vhost Rafin di sana
+#
+# Apa pun selain itu berarti proses lain menempati port yang dituju, dan
+# compose akan gagal separuh jalan sambil meninggalkan sebagian kontainer
+# hidup. Lebih baik berhenti di sini.
+periksa_port() {
+    local port="$1" pemilik_sah="$2"
+    local baris
+    baris="$(ss -tlnp 2>/dev/null | grep -E "[:.]${port}\b" || true)"
+
+    if [ -z "$baris" ]; then
+        oke "$port bebas"
+        return
     fi
-done
+
+    if printf '%s' "$baris" | grep -q "$pemilik_sah"; then
+        oke "$port dipakai ${pemilik_sah} — memang seharusnya"
+        return
+    fi
+
+    printf '%s\n' "$baris" >&2
+    mati "Port $port dipakai proses lain (diharapkan ${pemilik_sah}). Ubah portnya di docker-compose.yml dan vhost nginx."
+}
+
+periksa_port "$PORT_APP"   'docker-proxy'
+periksa_port "$PORT_VHOST" 'nginx'
 
 # PostgreSQL dan Redis sengaja tidak dipublikasikan. Diperiksa supaya
 # perubahan di compose tidak diam-diam membuka keduanya ke LAN.
