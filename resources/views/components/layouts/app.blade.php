@@ -39,6 +39,11 @@
     </script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- Menyembunyikan wire:loading dan x-cloak sebelum Livewire sempat
+         menyalakan diri. Tanpa ini, tombol Simpan di halaman Tambah
+         memperlihatkan "Simpan" dan "Menyimpan…" berbarengan. --}}
+    @livewireStyles
 </head>
 <body class="bg-paper text-ink" @if (auth()->user()?->punyaKunciAplikasi()) data-app-lock="1" @endif>
     <a href="#konten" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 tombol-utama">

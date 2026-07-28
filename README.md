@@ -173,10 +173,15 @@ membersihkannya di `terminate()` middleware dan di setiap batas job antrean.
 
 | Ukuran | Anggaran | Hasil |
 |---|---|---|
-| JavaScript awal (gzip) | ≤ 200 KB | **19,8 KB** |
-| CSS (gzip) | — | **7,4 KB** |
+| JavaScript awal (gzip) | ≤ 200 KB | **110,6 KB** |
+| CSS (gzip) | — | **9,8 KB** |
 | Service worker (gzip) | — | 7,9 KB, dimuat terpisah |
 | Font (total) | — | 56 KB, self-host, subset latin |
+
+Angka JavaScript itu sudah termasuk Livewire dan Alpine, yang memang dibundel ke dalam `app.js`
+alih-alih diunduh sebagai berkas kedua. Angka 19,8 KB yang tercatat di sini sebelumnya bukan hasil
+pengoptimalan: Livewire memang tidak ikut sama sekali, dan seluruh komponen di `/app` dirender lalu
+diam. Anggaran yang dipenuhi dengan menghilangkan mesinnya bukan anggaran yang dipenuhi.
 
 Terverifikasi di viewport 360px: nol kontrol di bawah 44px, tanpa gulir horizontal, mode gelap dan
 mode privasi bekerja, `:focus-visible` dan `prefers-reduced-motion` ada di stylesheet terkompilasi.

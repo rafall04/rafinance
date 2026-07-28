@@ -1,4 +1,5 @@
 import './bootstrap';
+import { Livewire } from '../../vendor/livewire/livewire/dist/livewire.esm';
 import { antrekan, jumlahTertunda, mintaSinkron, ulid, kompresGambar } from './antrean';
 
 /*
@@ -172,3 +173,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mulaiHitungIdle();
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Livewire
+ * ---------------------------------------------------------------------------
+ *
+ * Dipanggil terakhir, dan pemanggilannya wajib. Livewire hanya menyalakan
+ * dirinya sendiri kalau `window.livewireScriptConfig` TIDAK ada — dan tata
+ * letak kita memasang config itu lewat @livewireScriptConfig. Itulah kontrak
+ * "bundel sendiri": begitu config-nya ada, Livewire menyerahkan waktu mulai
+ * kepada kita.
+ *
+ * Tanpa baris ini komponen tetap dirender di server dan terlihat normal, tapi
+ * tidak ada satu pun wire:click, wire:model, atau $wire yang hidup — halaman
+ * yang tampak utuh dan diam saja saat ditekan.
+ *
+ * Terakhir, bukan pertama: pengendali di atas memasang window.rafin, dan
+ * penanganan x-on:click di halaman Tambah memanggilnya.
+ */
+Livewire.start();

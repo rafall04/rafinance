@@ -23,6 +23,11 @@
     </script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- Menyembunyikan wire:loading dan x-cloak sebelum Livewire sempat
+         menyalakan diri. Tanpa ini, tombol yang punya dua label memperlihatkan
+         keduanya sekaligus pada lukisan pertama. --}}
+    @livewireStyles
 </head>
 <body class="bg-paper text-ink">
     {{-- Cahaya latar yang sama dengan halaman depan. Halaman masuk adalah layar

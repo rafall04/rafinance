@@ -120,6 +120,13 @@ COPY public ./public
 # menangkapnya karena di laptop vendor/ memang ada.
 COPY --from=vendor /var/www/html/vendor/filament ./vendor/filament
 
+# Livewire ikut ke dalam bundel app.js, bukan diunduh sebagai berkas kedua.
+# Alasannya sama dengan di atas: vendor/ tidak ada di konteks build, jadi
+# `import ... from '../../vendor/livewire/livewire/dist/livewire.esm'` hanya
+# bisa dipenuhi dari tahap vendor. Kalau baris ini hilang, npm run build mati
+# dengan "Rollup failed to resolve import".
+COPY --from=vendor /var/www/html/vendor/livewire ./vendor/livewire
+
 # app/Filament dipindai tema untuk kelas warna yang ditulis di PHP resource.
 COPY app/Filament ./app/Filament
 

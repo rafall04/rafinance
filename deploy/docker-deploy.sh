@@ -202,6 +202,23 @@ kode="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT_APP}/up"
 [ "$kode" = "200" ] || mati "/up menjawab $kode, bukan 200."
 oke "/up menjawab 200"
 
+# Halaman yang dirender server tetap terlihat utuh meskipun seluruh
+# JavaScript-nya tidak pernah dimuat: Livewire menaruh HTML awalnya di dalam
+# dokumen, lalu diam. Rilis pertama lolos setiap pemeriksaan di berkas ini
+# sambil tidak bisa dipakai sama sekali — tidak ada satu pun tombol yang
+# menjawab, dan nol workspace pernah berhasil dibuat.
+#
+# 200 di /up hanya membuktikan PHP hidup. Yang dibuktikan di sini: halaman
+# masuk merujuk sebuah bundel, dan bundel itu benar-benar memuat mesin
+# Livewire — bukan hanya config-nya.
+tebal 'Memeriksa mesin Livewire ikut terbundel'
+berkas="$(curl -s "http://127.0.0.1:${PORT_APP}/login" | grep -oE 'app-[A-Za-z0-9_-]+\.js' | head -1)"
+[ -n "$berkas" ] || mati 'Halaman masuk tidak merujuk bundel app.js sama sekali.'
+
+curl -s "http://127.0.0.1:${PORT_APP}/build/assets/${berkas}" | grep -q 'wire:snapshot' \
+    || mati "Bundel ${berkas} tidak memuat mesin Livewire — komponen akan dirender lalu diam. Periksa import dan Livewire.start() di resources/js/app.js."
+oke "bundel ${berkas} memuat mesin Livewire"
+
 # Aturan A4 tidak boleh hanya diasumsikan berlaku. Kalau role aplikasi
 # ternyata bisa melewati RLS, setiap uji isolasi jadi tidak berarti — ia
 # akan tetap lulus, hanya tidak lagi menguji apa pun.
