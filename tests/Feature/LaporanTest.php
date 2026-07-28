@@ -11,6 +11,7 @@ use App\Domain\Ledger\Models\Category;
 use App\Domain\Ledger\Models\Transaction;
 use App\Domain\Ledger\Services\PostTransaction;
 use App\Domain\Ledger\Services\Reports;
+use App\Domain\Ledger\Services\VoidTransaction;
 use App\Domain\Logging\Enums\SecurityEventType;
 use App\Domain\Logging\Models\SecurityEvent;
 use App\Domain\Projects\Models\Project;
@@ -279,4 +280,63 @@ it('membatasi ekspor lima kali per jam', function (): void {
     }
 
     $this->get('/app/ekspor')->assertStatus(429);
+});
+
+/*
+ * Transaksi yang dibatalkan tidak boleh muncul sebagai arus.
+ *
+ * Aturan A3 melarang menghapus, jadi koreksi selalu berupa pasangan: yang
+ * lama ditandai void, dan pembaliknya dicatat. Pasangan itu menjumlahkan nol
+ * pada saldo — tapi tidak pada "pemasukan" dan "pengeluaran", dua angka yang
+ * paling sering dibaca orang.
+ */
+
+it('tidak menampilkan transaksi yang dibatalkan sebagai arus kas', function (): void {
+    $kas = buatAkun('Kas', 1_000_000);
+
+    $salah = catatPengeluaran(50_000, $kas, 'salah catat', '2026-05-10');
+    app(VoidTransaction::class)($salah, 'salah orang');
+
+    $benar = catatPengeluaran(30_000, $kas, 'yang benar', '2026-05-10');
+    expect($benar->exists)->toBeTrue();
+
+    $arus = app(Reports::class)->arusKas(
+        new DateTimeImmutable('2026-05-01'),
+        new DateTimeImmutable('2026-05-31'),
+        'month',
+    );
+
+    expect($arus)->toHaveCount(1);
+
+    // Hanya pengeluaran yang benar. Sebelum perbaikan ini, keluar = 80.000
+    // dan masuk = 50.000 — uang yang tidak pernah masuk ke mana pun.
+    expect($arus->first()->keluar->minor)->toBe(30_000 * 100)
+        ->and($arus->first()->masuk->minor)->toBe(0);
+});
+
+it('tidak menghitung transaksi yang dibatalkan ke dalam laba rugi', function (): void {
+    $kas = buatAkun('Kas', 1_000_000);
+
+    $salah = catatPemasukan(90_000, $kas, 'salah', '2026-05-10');
+    app(VoidTransaction::class)($salah);
+
+    $laporan = app(Reports::class)->labaRugi(
+        new DateTimeImmutable('2026-05-01'),
+        new DateTimeImmutable('2026-05-31'),
+    );
+
+    expect($laporan->pendapatan->minor)->toBe(0)
+        ->and($laporan->beban->minor)->toBe(0);
+});
+
+it('tetap membuat saldo akun sama dengan sebelum salah catat', function (): void {
+    $kas = buatAkun('Kas', 1_000_000);
+    $saldoAwal = $kas->fresh()->balance()->minor;
+
+    $salah = catatPengeluaran(50_000, $kas, 'salah', '2026-05-10');
+    app(VoidTransaction::class)($salah);
+
+    // Neraca sengaja tetap menghitung pasangan void+pembalik, supaya angkanya
+    // sama dengan saldo akun. Yang dikecualikan hanya laporan arus.
+    expect($kas->fresh()->balance()->minor)->toBe($saldoAwal);
 });

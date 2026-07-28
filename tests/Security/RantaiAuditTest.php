@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Logging\AuditLogger;
 use App\Domain\Logging\Enums\AuditAction;
 use App\Domain\Logging\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -101,7 +102,17 @@ it('menunjuk baris yang tidak menyambung ke rantai', function (): void {
         workspaceId: $this->workspace->getKey(),
         action: AuditAction::TransactionVoided->value,
         prevHash: str_repeat('b', 64),
-        hash: AuditLog::computeHash(str_repeat('b', 64), AuditAction::TransactionVoided->value, null, $stempel),
+        hash: AuditLog::computeHash(
+            str_repeat('b', 64),
+            AuditAction::TransactionVoided->value,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $stempel,
+        ),
         createdAt: $stempel,
     );
 
@@ -167,4 +178,90 @@ it('menyembunyikan jejak audit dari workspace lain', function (): void {
     // audit_logs memuat nominal, jadi RLS-nya sama ketatnya dengan transaksi.
     expect(AuditLog::query()->count())->toBe(0)
         ->and($jumlahSatu)->toBeGreaterThan(0);
+});
+
+/*
+ * Isi perubahannya ikut disegel, bukan hanya jenis dan waktunya.
+ *
+ * Sampai Juli 2026 hash hanya menghitung prev_hash, action, auditable_id, dan
+ * created_at. Empat ruas yang paling berharga bagi orang yang ingin merapikan
+ * jejaknya — nominal sebelum-sesudah, siapa pelakunya, dan dari alamat mana —
+ * berada di luar rantai dan bisa diubah tanpa satu pun hash meleset.
+ *
+ * Penyuntingannya ditiru DI MEMORI, bukan lewat UPDATE, karena dua jalan lain
+ * memang sudah tertutup dan keduanya seharusnya begitu: rafin_app tidak punya
+ * hak UPDATE di tabel ini, dan koneksi pemilik skema adalah koneksi terpisah
+ * yang tidak bisa melihat baris di dalam transaksi test yang belum di-commit.
+ *
+ * Yang tersisa justru pertanyaan yang benar: kalau isi sebuah baris berbeda
+ * dari saat hash-nya dibuat, apakah hash-nya ikut berbeda? Itulah satu-satunya
+ * sifat yang membuat penyuntingan bisa ketahuan, dari mana pun datangnya.
+ */
+
+it('memasukkan isi perubahan ke dalam hash', function (): void {
+    catatPengeluaran(50_000, $this->kas);
+
+    $baris = AuditLog::query()->whereNotNull('after')->orderByDesc('created_at')->first();
+    expect($baris)->not->toBeNull()
+        ->and($baris->hash)->toBe($baris->expectedHash());
+
+    $baris->setAttribute('after', ['status' => 'posted', 'nominal_palsu' => 1]);
+
+    expect($baris->expectedHash())->not->toBe($baris->hash);
+});
+
+it('memasukkan pelaku dan alamat pemanggil ke dalam hash', function (): void {
+    catatPengeluaran(50_000, $this->kas);
+
+    $baris = AuditLog::query()->orderByDesc('created_at')->first();
+    $asli = $baris->hash;
+
+    $baris->setAttribute('ip', '203.0.113.9');
+    expect($baris->expectedHash())->not->toBe($asli);
+
+    $baris->setAttribute('ip', null);
+    $baris->setAttribute('actor_user_id', (string) User::factory()->create()->getKey());
+    expect($baris->expectedHash())->not->toBe($asli);
+});
+
+it('memasukkan jenis objek yang diaudit ke dalam hash', function (): void {
+    catatPengeluaran(50_000, $this->kas);
+
+    $baris = AuditLog::query()->whereNotNull('auditable_type')->orderByDesc('created_at')->first();
+    expect($baris)->not->toBeNull();
+
+    $asli = $baris->hash;
+    $baris->setAttribute('auditable_type', 'App\\Models\\SesuatuYangLain');
+
+    expect($baris->expectedHash())->not->toBe($asli);
+});
+
+it('tidak terpengaruh urutan kunci JSON, yang memang diatur ulang PostgreSQL', function (): void {
+    // jsonb menyimpan kunci dalam urutannya sendiri. Kalau hash dihitung dari
+    // json_encode apa adanya, baris yang tidak disentuh siapa pun bisa gagal
+    // verifikasi hanya karena dibaca ulang — rantai yang menuduh dirinya
+    // sendiri, dan alarm palsu yang membuat orang berhenti percaya alarmnya.
+    $satu = AuditLog::computeHash(null, 'x', null, null, null, null, ['b' => 2, 'a' => 1], null, '2026-01-01 00:00:00.000000');
+    $dua = AuditLog::computeHash(null, 'x', null, null, null, null, ['a' => 1, 'b' => 2], null, '2026-01-01 00:00:00.000000');
+
+    expect($satu)->toBe($dua);
+});
+
+it('membedakan ruas yang bergeser, bukan sekadar menyambungnya', function (): void {
+    // Penggabungan polos membuat ("ab","c") dan ("a","bc") menghasilkan
+    // masukan yang sama. Dengan pemisah, keduanya berbeda.
+    $satu = AuditLog::computeHash(null, 'ab', 'c', null, null, null, null, null, '2026-01-01 00:00:00.000000');
+    $dua = AuditLog::computeHash(null, 'a', 'bc', null, null, null, null, null, '2026-01-01 00:00:00.000000');
+
+    expect($satu)->not->toBe($dua);
+});
+
+it('tetap menyatakan rantai utuh untuk baris yang tidak disentuh siapa pun', function (): void {
+    catatPengeluaran(50_000, $this->kas);
+    catatPemasukan(20_000, $this->kas);
+
+    $hasil = app(AuditLogger::class)->verify($this->workspace->getKey());
+
+    expect($hasil['ok'])->toBeTrue()
+        ->and($hasil['broken'])->toBe([]);
 });

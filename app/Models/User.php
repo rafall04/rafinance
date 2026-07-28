@@ -16,12 +16,14 @@ use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
@@ -75,6 +77,30 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'two_factor_confirmed_at' => 'immutable_datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Surel selalu tersimpan dalam huruf kecil dan tanpa spasi di ujung.
+     *
+     * Fortify sudah menormalkannya di pintu depan — `lowercase_usernames`
+     * berlaku untuk daftar, masuk, reset sandi, dan ubah profil. Tapi pintu
+     * depan bukan satu-satunya jalan menulis ke tabel ini: ada panel admin,
+     * seeder, perintah artisan, dan kode yang belum ditulis siapa pun.
+     *
+     * PostgreSQL membandingkan varchar secara peka huruf, jadi satu saja
+     * jalur yang lupa menormalkan akan menghasilkan "Budi@Gmail.com" di
+     * samping "budi@gmail.com": dua akun, dua buku kas, satu kotak surel, dan
+     * pemiliknya bingung ke mana catatannya pergi. Index unik biasa tidak
+     * menangkapnya karena bagi database keduanya memang berbeda.
+     *
+     * Karena itu aturannya dipindahkan ke sini, ditemani index unik atas
+     * lower(email) di database sebagai jaring terakhir.
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => $value === null ? null : Str::lower(trim($value)),
+        );
     }
 
     public function memberships(): HasMany

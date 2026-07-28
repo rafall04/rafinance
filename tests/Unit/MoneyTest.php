@@ -114,3 +114,33 @@ it('menulis mata uang berdesimal apa adanya', function (): void {
 it('menolak mata uang yang tidak dikenal', function (): void {
     Money::ofMajor(1, 'XYZ');
 })->throws(InvalidArgumentException::class);
+
+/*
+ * Pengelompokan ribuan tanpa melewati float.
+ *
+ * number_format() menerima float, dan seluruh kelas Money ada justru untuk
+ * memastikan nominal tidak pernah menyentuhnya. Di atas 2^53 minor unit,
+ * pembulatan IEEE-754 mulai mengarang digit.
+ */
+
+it('mengelompokkan ribuan dengan tepat sampai batas presisi float', function (): void {
+    // 2^53 - 1 minor unit. Di sinilah float mulai kehilangan digit terakhirnya.
+    $nominal = Money::ofMinor(900719925474099100, 'IDR');
+
+    expect($nominal->formatPlain())->toBe('9.007.199.254.740.991');
+});
+
+it('mengelompokkan ribuan dengan benar di setiap panjang angka', function (int $minor, string $harapan): void {
+    expect(Money::ofMinor($minor, 'IDR')->formatPlain())->toBe($harapan);
+})->with([
+    [0, '0'],
+    [100, '1'],
+    [99_900, '999'],
+    [100_000, '1.000'],
+    [5_000_000, '50.000'],
+    [123_456_789_012, '1.234.567.890'],
+]);
+
+it('menaruh tanda minus di depan, bukan di tengah kelompok', function (): void {
+    expect(Money::ofMinor(-123_456_700, 'IDR')->formatPlain())->toBe('-1.234.567');
+});

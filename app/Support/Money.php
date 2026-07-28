@@ -217,7 +217,14 @@ final readonly class Money implements JsonSerializable, Stringable
         $whole = intdiv($minor, $factor);
         $sign = $this->minor < 0 ? '-' : '';
 
-        $text = number_format((float) $whole, 0, ',', '.');
+        // Dikelompokkan sebagai teks, bukan lewat number_format().
+        //
+        // number_format() menerima float, dan seluruh kelas ini ada justru
+        // untuk memastikan nominal tidak pernah menyentuh float. Untuk angka
+        // sehari-hari hasilnya memang sama, tapi di atas 2^53 minor unit
+        // pembulatan IEEE-754 mulai mengarang digit — dan "sebagian besar
+        // waktu benar" adalah sifat yang tidak boleh dimiliki penampil uang.
+        $text = strrev(implode('.', str_split(strrev((string) $whole), 3)));
 
         if ($decimals > 0) {
             $fraction = $minor % $factor;

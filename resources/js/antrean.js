@@ -1,4 +1,4 @@
-import { openDB } from 'idb';
+import { TOKO, antreanDitolak, antreanTertunda, bukaDb, kirimAntrean } from './kirim-antrean';
 
 /*
  * Antrean transaksi di sisi client.
@@ -7,20 +7,13 @@ import { openDB } from 'idb';
  * disubmit, online maupun tidak. Aplikasi keuangan yang menolak mencatat saat
  * sinyal hilang akan ditinggalkan, karena sinyal paling sering hilang justru di
  * tempat orang mengeluarkan uang — pasar, parkiran basement, jalan antar kota.
+ *
+ * Aturan penyimpanan dan pengirimannya ada di kirim-antrean.js, dipakai
+ * bersama dengan service worker supaya keduanya tidak pernah berbeda pendapat
+ * tentang apa arti 422.
  */
 
-const NAMA_DB = 'rafin';
-const TOKO = 'antrean';
-
-async function db() {
-    return openDB(NAMA_DB, 1, {
-        upgrade(database) {
-            if (!database.objectStoreNames.contains(TOKO)) {
-                database.createObjectStore(TOKO, { keyPath: 'id' });
-            }
-        },
-    });
-}
+export { antreanDitolak };
 
 /**
  * ULID sisi client.
@@ -52,7 +45,7 @@ export function ulid() {
 }
 
 export async function antrekan(id, url, payload, csrf) {
-    const koneksi = await db();
+    const koneksi = await bukaDb();
 
     await koneksi.put(TOKO, {
         id,
@@ -69,11 +62,24 @@ export async function antrekan(id, url, payload, csrf) {
 }
 
 export async function jumlahTertunda() {
-    return (await db()).count(TOKO);
+    return (await antreanTertunda()).length;
 }
 
 export async function daftarTertunda() {
-    return (await db()).getAll(TOKO);
+    return antreanTertunda();
+}
+
+/**
+ * Membuang seluruh antrean beserta basis datanya.
+ *
+ * Dipanggil saat keluar. Antrean menyimpan transaksi milik orang yang tadi
+ * masuk, lengkap dengan nominalnya; membiarkannya menetap berarti transaksi
+ * itu akan terkirim ke sesi orang berikutnya yang masuk di ponsel yang sama.
+ */
+export async function kosongkanAntrean() {
+    const koneksi = await bukaDb();
+
+    await koneksi.clear(TOKO);
 }
 
 /**
@@ -86,9 +92,15 @@ export async function daftarTertunda() {
  * menyediakan mekanismenya.
  */
 export async function mintaSinkron() {
-    const registrasi = await navigator.serviceWorker?.ready;
+    const registrasi = await pendaftaranAktif();
 
-    if (!registrasi) return;
+    // Tanpa service worker, halaman ini sendiri yang mengirim. Inilah yang
+    // membuat antrean tetap terkuras di mode privat, di perangkat yang
+    // kebijakannya melarang service worker, dan — seperti yang terjadi di
+    // produksi — saat pendaftarannya gagal karena salah header.
+    if (!registrasi || !registrasi.active) {
+        return kirimDariHalaman();
+    }
 
     if ('sync' in registrasi) {
         try {
@@ -99,7 +111,42 @@ export async function mintaSinkron() {
         }
     }
 
-    registrasi.active?.postMessage({ type: 'KIRIM_ANTREAN' });
+    registrasi.active.postMessage({ type: 'KIRIM_ANTREAN', csrf: tokenCsrf() });
+}
+
+function tokenCsrf() {
+    return document.querySelector('meta[name="csrf-token"]')?.content ?? null;
+}
+
+/**
+ * Pendaftaran service worker yang benar-benar ada, atau null.
+ *
+ * BUKAN navigator.serviceWorker.ready. Promise itu tidak pernah selesai kalau
+ * tidak ada satu pun pendaftaran — ia menunggu selamanya alih-alih menjawab
+ * null. Menunggunya di jalur ini berarti mintaSinkron() menggantung tanpa
+ * suara, antrean tidak pernah terkirim, dan tidak ada galat apa pun yang bisa
+ * ditelusuri. getRegistration() menjawab undefined, dan itu yang kita perlu.
+ */
+async function pendaftaranAktif() {
+    if (!('serviceWorker' in navigator)) return null;
+
+    try {
+        return (await navigator.serviceWorker.getRegistration()) ?? null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Mengirim antrean langsung dari halaman, lalu mengabarkan hasilnya dengan
+ * event yang sama bentuknya dengan pesan dari service worker.
+ */
+export async function kirimDariHalaman() {
+    const hasil = await kirimAntrean(tokenCsrf());
+
+    window.dispatchEvent(new CustomEvent('rafin:antrean', { detail: hasil }));
+
+    return hasil;
 }
 
 /**

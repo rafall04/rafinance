@@ -12,6 +12,7 @@ use App\Domain\Tenancy\Models\SocialAccount;
 use App\Domain\Tenancy\Models\SupportAccessGrant;
 use App\Domain\Tenancy\Models\UserDevice;
 use App\Domain\Tenancy\TenantContext;
+use App\Http\Middleware\PastikanAplikasiTerbuka;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -122,8 +123,15 @@ class Keamanan extends Component
 
         $pengguna->forceFill(['app_lock_pin_hash' => Hash::make($data['pinBaru'])])->save();
 
+        // Sesi yang sedang berjalan dianggap sudah terbuka. Tanpa baris ini
+        // orang yang baru saja memasang PIN langsung terlempar ke layar kunci
+        // dari halaman yang sedang ia pakai, dan diminta memasukkan PIN yang
+        // ia ketik dua detik lalu.
+        PastikanAplikasiTerbuka::tandaiTerbuka();
+
         $this->reset(['pinBaru', 'pinUlang']);
-        session()->flash('kabar', 'PIN dipasang. Aplikasi akan mengunci sendiri setelah lima menit menganggur.');
+        session()->flash('kabar', 'PIN dipasang. Aplikasi akan mengunci sendiri setelah '
+            .config('rafin.app_lock_idle_minutes', 5).' menit menganggur.');
     }
 
     public function hapusPin(): void

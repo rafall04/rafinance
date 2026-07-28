@@ -28,6 +28,27 @@ use Illuminate\Support\Facades\DB;
 final class Reports
 {
     /**
+     * Transaksi yang benar-benar terjadi, untuk laporan yang menampilkan
+     * ARUS — pemasukan, pengeluaran, pendapatan, beban.
+     *
+     * Dua hal dikeluarkan, dan keduanya berpasangan: transaksi yang sudah
+     * dibatalkan, dan transaksi pembalik yang membatalkannya. Aturan A3
+     * melarang menghapus, jadi koreksi selalu berupa pasangan yang saling
+     * meniadakan — dan pasangan itu menjumlahkan nol pada saldo, tapi TIDAK
+     * pada arus.
+     *
+     * Sebelum ini keduanya ikut terhitung. Salah catat Rp 50.000 lalu
+     * membatalkannya membuat laporan bulan itu menampilkan pengeluaran
+     * Rp 50.000 DAN pemasukan Rp 50.000 — uang yang tidak pernah keluar dan
+     * tidak pernah masuk. Netonya benar, dan justru itu yang membuatnya sulit
+     * disadari: yang salah adalah dua angka yang paling sering dibaca orang.
+     *
+     * Neraca sengaja TIDAK memakai saringan ini. Di sana pasangan itu memang
+     * harus ikut, supaya angkanya tetap sama dengan Account::signedBalance().
+     */
+    private const ARUS_NYATA = "t.status = 'posted' AND t.reverses_transaction_id IS NULL";
+
+    /**
      * Arus kas per satuan waktu.
      *
      * @return Collection<int, object{periode: string, masuk: Money, keluar: Money, net: Money}>
@@ -50,6 +71,8 @@ final class Reports
             default => 'day',
         };
 
+        $nyata = self::ARUS_NYATA;
+
         $baris = DB::connection('pgsql')->select(
             <<<SQL
                 SELECT
@@ -58,14 +81,13 @@ final class Reports
                     COALESCE(-SUM(e.amount_minor) FILTER (WHERE e.amount_minor < 0), 0) AS keluar
                 FROM entries e
                 JOIN transactions t ON t.id = e.transaction_id
-                WHERE t.status <> ?
+                WHERE {$nyata}
                   AND t.booked_date BETWEEN ? AND ?
                   AND e.account_id = ANY(?)
                 GROUP BY 1
                 ORDER BY 1
             SQL,
             [
-                TransactionStatus::Draft->value,
                 $dari->format('Y-m-d'),
                 $sampai->format('Y-m-d'),
                 '{'.implode(',', $idAkunUang).'}',
@@ -104,6 +126,7 @@ final class Reports
 
         // Pengeluaran melihat sisi kredit akun uang, pemasukan sisi debit.
         $arah = $kind === 'income' ? '>' : '<';
+        $nyata = self::ARUS_NYATA;
 
         $baris = DB::connection('pgsql')->select(
             <<<SQL
@@ -115,7 +138,7 @@ final class Reports
                 FROM entries e
                 JOIN transactions t ON t.id = e.transaction_id
                 LEFT JOIN categories c ON c.id = t.category_id
-                WHERE t.status <> ?
+                WHERE {$nyata}
                   AND t.kind = ?
                   AND t.booked_date BETWEEN ? AND ?
                   AND e.account_id = ANY(?)
@@ -124,7 +147,6 @@ final class Reports
                 ORDER BY total DESC
             SQL,
             [
-                TransactionStatus::Draft->value,
                 $kind,
                 $dari->format('Y-m-d'),
                 $sampai->format('Y-m-d'),
@@ -163,6 +185,8 @@ final class Reports
             return collect();
         }
 
+        $nyata = self::ARUS_NYATA;
+
         $baris = DB::connection('pgsql')->select(
             <<<SQL
                 SELECT
@@ -173,7 +197,7 @@ final class Reports
                 FROM entries e
                 JOIN transactions t ON t.id = e.transaction_id
                 LEFT JOIN {$tabel} d ON d.id = {$kolom}
-                WHERE t.status <> ?
+                WHERE {$nyata}
                   AND t.booked_date BETWEEN ? AND ?
                   AND e.account_id = ANY(?)
                 GROUP BY d.id, d.name
@@ -181,7 +205,6 @@ final class Reports
             SQL,
             [
                 $kosong,
-                TransactionStatus::Draft->value,
                 $dari->format('Y-m-d'),
                 $sampai->format('Y-m-d'),
                 '{'.implode(',', $idAkunUang).'}',
@@ -209,18 +232,20 @@ final class Reports
      */
     public function labaRugi(DateTimeInterface $dari, DateTimeInterface $sampai, string $currency = 'IDR'): object
     {
+        $nyata = self::ARUS_NYATA;
+
         $baris = DB::connection('pgsql')->selectOne(
-            <<<'SQL'
+            <<<SQL
                 SELECT
                     COALESCE(-SUM(e.amount_minor) FILTER (WHERE a.type = 'income'), 0) AS pendapatan,
                     COALESCE(SUM(e.amount_minor) FILTER (WHERE a.type = 'expense'), 0) AS beban
                 FROM entries e
                 JOIN transactions t ON t.id = e.transaction_id
                 JOIN accounts a ON a.id = e.account_id
-                WHERE t.status <> ?
+                WHERE {$nyata}
                   AND t.booked_date BETWEEN ? AND ?
             SQL,
-            [TransactionStatus::Draft->value, $dari->format('Y-m-d'), $sampai->format('Y-m-d')],
+            [$dari->format('Y-m-d'), $sampai->format('Y-m-d')],
         );
 
         $pendapatan = Money::ofMinor((int) ($baris->pendapatan ?? 0), $currency);

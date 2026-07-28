@@ -13,7 +13,7 @@
  */
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { openDB } from 'idb';
+import { kirimAntrean } from './kirim-antrean';
 
 const VERSI = 'rafin-v1';
 const CACHE_HALAMAN = `${VERSI}-halaman`;
@@ -52,103 +52,60 @@ self.addEventListener('activate', (event) => {
 // Antrean offline
 // ---------------------------------------------------------------------------
 
-const NAMA_DB = 'rafin';
-const TOKO = 'antrean';
-
-async function db() {
-    return openDB(NAMA_DB, 1, {
-        upgrade(database) {
-            if (!database.objectStoreNames.contains(TOKO)) {
-                database.createObjectStore(TOKO, { keyPath: 'id' });
-            }
-        },
-    });
-}
-
-async function antrean() {
-    return (await db()).getAll(TOKO);
-}
-
-async function buangDariAntrean(id) {
-    return (await db()).delete(TOKO, id);
-}
-
-async function tandaiGagal(id, pesan) {
-    const koneksi = await db();
-    const baris = await koneksi.get(TOKO, id);
-    if (!baris) return;
-
-    baris.percobaan = (baris.percobaan || 0) + 1;
-    baris.galat = String(pesan).slice(0, 300);
-    await koneksi.put(TOKO, baris);
-}
-
 /**
- * Mengirim ulang seluruh antrean. Aman dipanggil berkali-kali: server
- * mengembalikan transaksi yang sudah ada untuk ULID yang sama.
+ * Mengirim ulang seluruh antrean, lalu mengabarkan hasilnya ke semua tab.
+ *
+ * Aturannya sendiri ada di kirim-antrean.js, dipakai bersama dengan halaman.
+ * Dulu ia ditulis dua kali, dan dua salinan aturan tentang apa arti 422 adalah
+ * cara yang rapi untuk membuat keduanya berbeda pendapat enam bulan lagi.
  */
-async function kirimAntrean() {
-    const daftar = await antrean();
-    let terkirim = 0;
-
-    for (const baris of daftar) {
-        try {
-            const balasan = await fetch(baris.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': baris.csrf,
-                    // Kunci idempotency = ULID transaksi. Kiriman kedua tidak
-                    // pernah jadi pengeluaran kedua.
-                    'Idempotency-Key': baris.id,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify(baris.payload),
-                credentials: 'same-origin',
-            });
-
-            if (balasan.ok || balasan.status === 409 || balasan.status === 422) {
-                // 409 berarti sudah pernah diterima; 422 berarti data ini tidak
-                // akan pernah sah, dan mengulanginya selamanya tidak menolong.
-                await buangDariAntrean(baris.id);
-                terkirim++;
-                continue;
-            }
-
-            if (balasan.status === 401 || balasan.status === 419) {
-                // Sesi habis. Tahan antrean; pengguna akan masuk lagi.
-                break;
-            }
-
-            await tandaiGagal(baris.id, `HTTP ${balasan.status}`);
-        } catch (galat) {
-            await tandaiGagal(baris.id, galat.message);
-            break; // Masih offline. Berhenti, coba lagi nanti.
-        }
-    }
-
-    const sisa = (await antrean()).length;
+async function kuraskanAntrean(csrfSegar = null) {
+    const hasil = await kirimAntrean(csrfSegar);
 
     const semuaClient = await self.clients.matchAll({ includeUncontrolled: true });
     semuaClient.forEach((client) =>
-        client.postMessage({ type: 'ANTREAN_BERUBAH', sisa, terkirim }),
+        client.postMessage({ type: 'ANTREAN_BERUBAH', ...hasil }),
     );
 
-    return sisa;
+    return hasil.sisa;
 }
 
 self.addEventListener('sync', (event) => {
     if (event.tag === 'rafin-antrean') {
-        event.waitUntil(kirimAntrean());
+        event.waitUntil(kuraskanAntrean());
     }
 });
 
 self.addEventListener('message', (event) => {
     if (event.data?.type === 'KIRIM_ANTREAN') {
-        event.waitUntil(kirimAntrean());
+        // Token dari halaman yang sedang terbuka. Background Sync memanggil
+        // tanpa token karena memang tidak ada halaman yang bisa ditanya; di
+        // jalur itu token simpanan yang dipakai.
+        event.waitUntil(kuraskanAntrean(event.data.csrf ?? null));
+    }
+
+    // Keluar: buang seluruh cache halaman dan lampiran. Lihat catatan panjang
+    // di app.js — cache ini berisi buku kas orang yang tadi masuk.
+    if (event.data?.type === 'LUPAKAN_SEMUA') {
+        event.waitUntil(lupakanSemua());
     }
 });
+
+/**
+ * Membuang seluruh cache milik Rafin.
+ *
+ * Cache Storage tidak terikat sesi: ia bertahan melewati logout, melewati
+ * penggantian akun, dan melewati penutupan aplikasi. Halaman /app yang sudah
+ * dirender berisi nominal dan keterangan transaksi pemiliknya, dan halaman()
+ * di bawah menyajikan yang tersimpan LEBIH DULU sebelum menyegarkan. Tanpa
+ * pembersihan ini, orang kedua yang masuk di ponsel yang sama — hal biasa di
+ * warung dan usaha keluarga — akan melihat buku kas orang pertama lebih dulu.
+ */
+async function lupakanSemua() {
+    const nama = await caches.keys();
+
+    await Promise.all(nama.filter((n) => n.startsWith('rafin-')).map((n) => caches.delete(n)));
+}
 
 // ---------------------------------------------------------------------------
 // Strategi pengambilan

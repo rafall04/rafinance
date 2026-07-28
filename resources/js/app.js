@@ -1,6 +1,13 @@
 import './bootstrap';
 import { Livewire } from '../../vendor/livewire/livewire/dist/livewire.esm';
-import { antrekan, jumlahTertunda, mintaSinkron, ulid, kompresGambar } from './antrean';
+import {
+    antreanDitolak,
+    antrekan,
+    jumlahTertunda,
+    mintaSinkron,
+    ulid,
+    kompresGambar,
+} from './antrean';
 
 /*
  * ---------------------------------------------------------------------------
@@ -10,29 +17,53 @@ import { antrekan, jumlahTertunda, mintaSinkron, ulid, kompresGambar } from './a
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/build/sw.js', { scope: '/' }).catch(() => {
-            // Pemasangan gagal (mode privat, HTTP, atau kebijakan perangkat).
-            // Aplikasi tetap berjalan; hanya kemampuan offline yang hilang.
+        navigator.serviceWorker.register('/build/sw.js', { scope: '/' }).catch((galat) => {
+            // Kegagalan di sini TIDAK boleh sunyi.
+            //
+            // Versi sebelumnya menelannya dengan catch kosong dan komentar yang
+            // menenangkan, dan akibatnya berjalan berbulan-bulan di produksi:
+            // server tidak mengirim header Service-Worker-Allowed, pendaftaran
+            // ditolak dengan SecurityError, dan tidak ada satu pun tanda. Yang
+            // hilang bukan cuma "kemampuan offline" — antrean tidak pernah
+            // dikuras siapa pun, jadi transaksi yang sudah dibaca pengguna
+            // sebagai "tersimpan" mengendap di IndexedDB selamanya.
+            //
+            // Sekarang antreannya tetap terkuras dari halaman ini (lihat
+            // mintaSinkron), dan kegagalannya ditinggalkan di tempat yang bisa
+            // ditemukan orang berikutnya.
+            window.rafin.serviceWorkerGagal = String(galat?.message ?? galat);
+            console.error('[rafin] service worker gagal terdaftar:', galat);
         });
     });
 
     navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data?.type === 'ANTREAN_BERUBAH') {
-            perbaruiLencana(event.data.sisa);
+            perbaruiLencana(event.data.sisa, event.data.ditolak);
 
             if (event.data.terkirim > 0) {
                 window.Livewire?.dispatch('antrean-tersinkron');
             }
         }
     });
-
-    // Safari tidak punya Background Sync sama sekali, jadi dua pemicu manual
-    // ini bukan cadangan — di iOS merekalah satu-satunya jalan.
-    window.addEventListener('online', () => mintaSinkron());
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') mintaSinkron();
-    });
 }
+
+// Hasil pengiriman dari halaman sendiri, saat service worker tidak ada.
+window.addEventListener('rafin:antrean', (event) => {
+    perbaruiLencana(event.detail?.sisa, event.detail?.ditolak);
+
+    if (event.detail?.terkirim > 0) {
+        window.Livewire?.dispatch('antrean-tersinkron');
+    }
+});
+
+// Safari tidak punya Background Sync sama sekali, jadi dua pemicu manual ini
+// bukan cadangan — di iOS merekalah satu-satunya jalan. Dipasang di luar
+// pemeriksaan 'serviceWorker' karena mintaSinkron() sekarang tetap berguna
+// tanpa service worker: ia mengirim langsung dari halaman.
+window.addEventListener('online', () => mintaSinkron());
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') mintaSinkron();
+});
 
 /*
  * ---------------------------------------------------------------------------
@@ -40,14 +71,22 @@ if ('serviceWorker' in navigator) {
  * ---------------------------------------------------------------------------
  */
 
-async function perbaruiLencana(sisa = null) {
+async function perbaruiLencana(sisa = null, ditolak = null) {
     const jumlah = sisa ?? (await jumlahTertunda());
+    const gagal = ditolak ?? (await antreanDitolak()).length;
     const lencana = document.querySelector('[data-lencana-antrean]');
 
     if (!lencana) return;
 
-    lencana.hidden = jumlah === 0;
-    lencana.textContent = jumlah === 0 ? '' : `Menunggu sinkron · ${jumlah}`;
+    // Yang ditolak server disebut terpisah dan didahulukan. Ia tidak akan
+    // terkirim betapapun lama menunggu, jadi menyebutnya "menunggu sinkron"
+    // adalah kebohongan yang membuat orang berhenti memeriksanya.
+    const bagian = [];
+    if (jumlah > 0) bagian.push(`Menunggu sinkron · ${jumlah}`);
+    if (gagal > 0) bagian.push(`Ditolak · ${gagal}`);
+
+    lencana.hidden = bagian.length === 0;
+    lencana.textContent = bagian.join('  ·  ');
 }
 
 document.addEventListener('DOMContentLoaded', () => perbaruiLencana());
@@ -173,6 +212,86 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mulaiHitungIdle();
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Keluar: membersihkan jejak di perangkat
+ * ---------------------------------------------------------------------------
+ *
+ * Sesi berakhir di server, tapi tiga hal tetap tertinggal di ponsel dan tidak
+ * satu pun ikut mati bersamanya:
+ *
+ *   Cache Storage   halaman /app yang sudah dirender, lengkap dengan nominal
+ *   IndexedDB       antrean transaksi yang belum terkirim
+ *   sessionStorage  status kunci aplikasi
+ *
+ * Yang pertama paling berbahaya: service worker menyajikan halaman tersimpan
+ * LEBIH DULU sebelum menyegarkan, jadi orang kedua yang masuk di ponsel yang
+ * sama akan melihat buku kas orang pertama sekejap sebelum layarnya berganti.
+ * Ponsel berbagi adalah hal biasa di warung dan usaha keluarga — pasar sasaran
+ * aplikasi ini.
+ *
+ * Antreannya sengaja TIDAK dikosongkan lebih dulu: isinya catatan pengeluaran
+ * yang belum sampai, dan membuangnya berarti menghilangkan uang orang dari
+ * pembukuannya. Ia dicoba kirim dulu; yang tersisa tetap disimpan, dan token
+ * CSRF-nya yang sudah mati membuatnya mustahil terkirim ke sesi orang lain.
+ */
+async function bersihkanJejakPerangkat() {
+    try {
+        await mintaSinkron();
+    } catch {
+        // Offline atau ditolak. Antreannya tetap tersimpan.
+    }
+
+    try {
+        sessionStorage.removeItem('rafin.terkunci');
+    } catch {
+        // Penyimpanan diblokir.
+    }
+
+    // Dibuang dari halaman ini, bukan lewat pesan ke service worker: kalau
+    // pendaftarannya gagal, pesan itu tidak akan sampai ke siapa pun.
+    if ('caches' in window) {
+        try {
+            const nama = await caches.keys();
+            await Promise.all(
+                nama.filter((n) => n.startsWith('rafin-')).map((n) => caches.delete(n)),
+            );
+        } catch {
+            // Tidak bisa diakses; tidak ada yang bisa dilakukan dari sini.
+        }
+    }
+
+    try {
+        const registrasi = await navigator.serviceWorker?.getRegistration();
+        registrasi?.active?.postMessage({ type: 'LUPAKAN_SEMUA' });
+    } catch {
+        // Tidak ada service worker. Cache sudah dibuang di atas.
+    }
+}
+
+// Ditangkap di tingkat dokumen supaya berlaku untuk setiap formulir keluar —
+// ada tiga sekarang (Lainnya, kunci aplikasi, verifikasi surel), dan yang
+// ditambahkan besok ikut tercakup tanpa diingat siapa pun.
+document.addEventListener(
+    'submit',
+    (event) => {
+        const form = event.target;
+
+        if (!(form instanceof HTMLFormElement)) return;
+        if (!/\/logout$/.test(new URL(form.action, location.origin).pathname)) return;
+        if (form.dataset.rafinBersih === '1') return;
+
+        event.preventDefault();
+
+        bersihkanJejakPerangkat().finally(() => {
+            form.dataset.rafinBersih = '1';
+            // submit() tidak memicu event ini lagi, jadi tidak ada gelung.
+            form.submit();
+        });
+    },
+    true,
+);
 
 /*
  * ---------------------------------------------------------------------------

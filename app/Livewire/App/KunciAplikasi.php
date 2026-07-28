@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\App;
 
+use App\Http\Middleware\PastikanAplikasiTerbuka;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -56,8 +57,18 @@ class KunciAplikasi extends Component
         $this->selesai();
     }
 
+    /**
+     * Membuka kuncinya di dua tempat sekaligus.
+     *
+     * Sesi di server adalah yang menentukan — ia yang dibaca middleware
+     * PastikanAplikasiTerbuka pada setiap permintaan. Penanda di sessionStorage
+     * tetap dihapus karena pewaktu di sisi klien membacanya untuk tahu kapan
+     * harus memindahkan layar; ia mempercepat, bukan menjaga.
+     */
     private function selesai(): void
     {
+        PastikanAplikasiTerbuka::tandaiTerbuka();
+
         $this->js("sessionStorage.removeItem('rafin.terkunci'); window.location.href = '/app';");
     }
 

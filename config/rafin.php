@@ -24,6 +24,14 @@ return [
     'default_period_start_day' => 1,
 
     /*
+    | Berapa lama aplikasi boleh menganggur sebelum mengunci sendiri, bagi
+    | pengguna yang memasang PIN. Dibaca middleware PastikanAplikasiTerbuka —
+    | yang menegakkannya — dan oleh pewaktu di sisi klien yang hanya
+    | mempercepat perpindahan layarnya.
+    */
+    'app_lock_idle_minutes' => (int) env('RAFIN_APP_LOCK_IDLE_MINUTES', 5),
+
+    /*
     |--------------------------------------------------------------------------
     | Feature flag
     |--------------------------------------------------------------------------

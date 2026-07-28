@@ -91,11 +91,54 @@ class AuditLog extends Model
     }
 
     /**
-     * hash = sha256(prev_hash || action || auditable_id || created_at)
+     * Sidik jari satu baris audit, beserta seluruh isinya.
+     *
+     * Versi sebelumnya hanya menghitung prev_hash, action, auditable_id, dan
+     * created_at. Artinya `before`, `after`, `actor_user_id`, dan `ip` berada
+     * DI LUAR rantai: seseorang yang bisa menulis ke tabel ini dapat mengubah
+     * angka sebelum-sesudah sebuah perubahan, atau menukar siapa pelakunya,
+     * tanpa satu pun hash meleset. Yang terbukti utuh hanyalah "ada tindakan
+     * berjenis ini atas objek ini pada saat itu" — bukan apa yang terjadi dan
+     * bukan oleh siapa. Untuk jejak audit pembukuan, dua hal terakhir itulah
+     * yang paling ingin diubah orang.
+     *
+     * Dua hal yang membuat perhitungannya bisa diandalkan:
+     *
+     * 1. **Pemisah baris antar ruas.** Penggabungan polos membuat pasangan
+     *    ruas yang berbeda bisa menghasilkan masukan yang sama persis —
+     *    ("ab", "c") dan ("a", "bc") tidak terbedakan.
+     *
+     * 2. **Bentuk kanonik untuk JSON.** Kolomnya bertipe jsonb, dan
+     *    PostgreSQL menyimpan kunci jsonb dalam urutannya sendiri, bukan
+     *    urutan saat ditulis. Meng-encode apa adanya berarti hash saat
+     *    menulis dan saat memverifikasi bisa berbeda untuk baris yang sama
+     *    dan tidak tersentuh — rantai yang menuduh dirinya sendiri.
+     *
+     * @param  array<string, mixed>|null  $before
+     * @param  array<string, mixed>|null  $after
      */
-    public static function computeHash(?string $prevHash, string $action, ?string $auditableId, string $createdAt): string
-    {
-        return hash('sha256', ($prevHash ?? '').$action.($auditableId ?? '').$createdAt);
+    public static function computeHash(
+        ?string $prevHash,
+        string $action,
+        ?string $auditableType,
+        ?string $auditableId,
+        ?string $actorId,
+        ?string $ip,
+        ?array $before,
+        ?array $after,
+        string $createdAt,
+    ): string {
+        return hash('sha256', implode("\n", [
+            $prevHash ?? '',
+            $action,
+            $auditableType ?? '',
+            $auditableId ?? '',
+            $actorId ?? '',
+            $ip ?? '',
+            self::kanonik($before),
+            self::kanonik($after),
+            $createdAt,
+        ]));
     }
 
     public function expectedHash(): string
@@ -103,8 +146,39 @@ class AuditLog extends Model
         return self::computeHash(
             $this->prev_hash,
             $this->action->value,
+            $this->auditable_type,
             $this->auditable_id,
+            $this->actor_user_id,
+            $this->ip,
+            $this->before,
+            $this->after,
             $this->created_at->format('Y-m-d H:i:s.u'),
         );
+    }
+
+    /**
+     * Bentuk teks yang sama untuk isi yang sama, apa pun urutan kuncinya.
+     *
+     * @param  array<string, mixed>|null  $data
+     */
+    private static function kanonik(?array $data): string
+    {
+        if ($data === null) {
+            return '';
+        }
+
+        $urutkan = static function (array $isi) use (&$urutkan): array {
+            ksort($isi);
+
+            foreach ($isi as $kunci => $nilai) {
+                if (is_array($nilai)) {
+                    $isi[$kunci] = $urutkan($nilai);
+                }
+            }
+
+            return $isi;
+        };
+
+        return json_encode($urutkan($data), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
     }
 }

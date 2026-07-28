@@ -12,6 +12,7 @@ use App\Domain\Ledger\Models\Account;
 use App\Domain\Ledger\Services\PostTransaction;
 use App\Domain\Tenancy\TenantContext;
 use App\Support\Money;
+use App\Support\WaktuBuku;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -94,11 +95,20 @@ final class RunRecurringRules
 
         $kind = TransactionKind::tryFrom((string) ($template['kind'] ?? 'expense')) ?? TransactionKind::Expense;
 
+        // $saat dipakai dua kali dengan arti berbeda. Untuk memilih aturan mana
+        // yang jatuh tempo ia harus tetap UTC — begitulah next_run_at disimpan.
+        // Untuk tanggal buku ia harus dibaca di zona waktu bukunya: penjadwal
+        // yang berjalan pukul 00:30 UTC menulis transaksi tertanggal HARI ITU
+        // di Greenwich, padahal di Jakarta hari itu sudah lewat setengah delapan
+        // pagi. Metode ini berjalan di dalam runFor(), jadi zona yang terbaca
+        // memang milik workspace yang sedang diproses.
+        $tanggalBuku = $saat->setTimezone(WaktuBuku::zona())->toDateString();
+
         $draft = $kind === TransactionKind::Income
             ? DraftTransaction::pemasukan(
                 amount: $nominal,
                 to: $akun,
-                bookedDate: $saat->toDateString(),
+                bookedDate: $tanggalBuku,
                 description: $aturan->label,
                 categoryId: $template['category_id'] ?? null,
                 source: TransactionSource::Recurring,
@@ -106,7 +116,7 @@ final class RunRecurringRules
             : DraftTransaction::pengeluaran(
                 amount: $nominal,
                 from: $akun,
-                bookedDate: $saat->toDateString(),
+                bookedDate: $tanggalBuku,
                 description: $aturan->label,
                 categoryId: $template['category_id'] ?? null,
                 source: TransactionSource::Recurring,

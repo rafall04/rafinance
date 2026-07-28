@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\App;
 
+use App\Domain\Billing\Exceptions\QuotaTerlampaui;
+use App\Domain\Billing\Models\UsageCounter;
+use App\Domain\Billing\Services\QuotaGuard;
 use App\Domain\Capture\Enums\ParseStatus;
 use App\Domain\Capture\Models\InboxItem;
 use App\Domain\Capture\Services\CaptureText;
@@ -67,6 +70,34 @@ final class ShareTargetController
             );
         }
 
+        // Kuota lampiran diperiksa SEBELUM berkasnya ditulis ke disk. Kalau
+        // diperiksa sesudahnya, berkas yang ditolak tetap menempati ruang dan
+        // hanya bisa dibersihkan oleh orang yang ingat bahwa ia ada.
+        try {
+            app(QuotaGuard::class)->pastikanBolehMenambah(
+                UsageCounter::LAMPIRAN_BYTE,
+                (int) $berkas->getSize(),
+            );
+        } catch (QuotaTerlampaui) {
+            // Teksnya tetap diselamatkan kalau ada — orang yang berbagi struk
+            // beserta keterangannya tidak boleh kehilangan keduanya sekaligus
+            // hanya karena gambarnya tidak muat.
+            if ($teks !== '') {
+                $tangkap(
+                    teks: $teks,
+                    sumber: TransactionSource::PwaOffline,
+                    pengguna: $request->user(),
+                    currency: $workspace->currency,
+                );
+            }
+
+            return redirect()->route('app.inbox')->with(
+                'kabar',
+                'Kuota lampiran sudah penuh, jadi gambarnya tidak disimpan.'
+                    .($teks !== '' ? ' Keterangannya masuk inbox.' : ''),
+            );
+        }
+
         // Ada gambar: simpan sebagai lampiran dan buat item inbox. OCR menunggu
         // plan berbayar dan sekarang dimatikan feature flag (aturan A12).
         $item = InboxItem::query()->create([
@@ -87,6 +118,8 @@ final class ShareTargetController
         ]);
 
         $item->forceFill(['media_path' => $path])->save();
+
+        app(QuotaGuard::class)->catatPemakaian(UsageCounter::LAMPIRAN_BYTE, (int) $berkas->getSize());
 
         return redirect()->route('app.inbox')->with('kabar', 'Gambar tersimpan di inbox.');
     }

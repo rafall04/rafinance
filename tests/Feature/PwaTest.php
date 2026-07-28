@@ -6,6 +6,7 @@ use App\Domain\Capture\Models\InboxItem;
 use App\Domain\Ledger\Enums\TransactionSource;
 use App\Domain\Ledger\Models\Attachment;
 use App\Domain\Ledger\Models\Transaction;
+use App\Http\Middleware\PastikanAplikasiTerbuka;
 use App\Livewire\App\KunciAplikasi;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -215,7 +216,16 @@ it('menandai halaman dengan data-app-lock hanya kalau PIN dipasang', function ()
 
     $this->pengguna->forceFill(['app_lock_pin_hash' => Hash::make('123456')])->save();
 
-    $denganPin = $this->actingAs($this->pengguna->fresh())->get('/app')->getContent();
+    $this->actingAs($this->pengguna->fresh());
+
+    // Sesi ditandai terbuka lebih dulu. PIN dipasang langsung ke model di sini,
+    // melewati Keamanan::pasangPin() yang biasanya menandainya — dan tanpa
+    // penandaan itu middleware PastikanAplikasiTerbuka mengalihkan ke layar
+    // kunci, yang memang tugasnya. Yang diuji di baris berikutnya adalah tag
+    // body-nya, bukan kuncinya.
+    PastikanAplikasiTerbuka::tandaiTerbuka();
+
+    $denganPin = $this->get('/app')->getContent();
     expect($tagBody($denganPin))->toContain('data-app-lock="1"');
 });
 

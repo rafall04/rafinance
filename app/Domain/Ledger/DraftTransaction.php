@@ -8,6 +8,7 @@ use App\Domain\Ledger\Enums\TransactionKind;
 use App\Domain\Ledger\Enums\TransactionSource;
 use App\Domain\Ledger\Models\Account;
 use App\Support\Money;
+use App\Support\WaktuBuku;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Support\Str;
@@ -193,10 +194,18 @@ final readonly class DraftTransaction
         return $this->total() === 0;
     }
 
+    /**
+     * Tanggal buku sebuah transaksi.
+     *
+     * Bawaannya hari ini menurut zona waktu BUKU, bukan menurut UTC. Ini satu
+     * titik yang menentukan untuk setiap kanal yang tidak menyebutkan tanggal
+     * sendiri — Telegram, target berbagi PWA, aturan berulang. Penjelasan
+     * lengkapnya ada di WaktuBuku.
+     */
     private static function tanggal(DateTimeInterface|string|null $value): CarbonImmutable
     {
         if ($value === null) {
-            return CarbonImmutable::now();
+            return WaktuBuku::sekarang();
         }
 
         return $value instanceof DateTimeInterface

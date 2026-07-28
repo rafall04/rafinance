@@ -2,6 +2,7 @@
 
 use App\Domain\Tenancy\Http\Middleware\EnsureWorkspaceMember;
 use App\Domain\Tenancy\Http\Middleware\SetTenantContext;
+use App\Http\Middleware\PastikanAplikasiTerbuka;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -88,6 +89,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'workspace' => EnsureWorkspaceMember::class,
+            'terbuka' => PastikanAplikasiTerbuka::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

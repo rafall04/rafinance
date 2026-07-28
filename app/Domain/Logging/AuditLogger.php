@@ -63,19 +63,35 @@ final class AuditLogger
                 $stamp = $createdAt->format('Y-m-d H:i:s.u');
                 $auditableId = $auditable?->getKey();
                 $auditableId = is_scalar($auditableId) ? (string) $auditableId : null;
+                $auditableType = $auditable !== null ? $auditable::class : null;
+                $pelaku = $actorId ?? auth()->id();
+                $pelaku = is_scalar($pelaku) ? (string) $pelaku : null;
+                $ip = request()->ip();
 
                 return AuditLog::query()->create([
                     'id' => (string) Str::ulid(),
                     'workspace_id' => $workspaceId,
-                    'actor_user_id' => $actorId ?? auth()->id(),
+                    'actor_user_id' => $pelaku,
                     'action' => $action,
-                    'auditable_type' => $auditable !== null ? $auditable::class : null,
+                    'auditable_type' => $auditableType,
                     'auditable_id' => $auditableId,
                     'before' => $before,
                     'after' => $after,
-                    'ip' => request()->ip(),
+                    'ip' => $ip,
                     'prev_hash' => $previous?->hash,
-                    'hash' => AuditLog::computeHash($previous?->hash, $action->value, $auditableId, $stamp),
+                    // Seluruh isi baris ikut dihitung, bukan hanya jenis
+                    // tindakan dan waktunya. Lihat AuditLog::computeHash.
+                    'hash' => AuditLog::computeHash(
+                        $previous?->hash,
+                        $action->value,
+                        $auditableType,
+                        $auditableId,
+                        $pelaku,
+                        $ip,
+                        $before,
+                        $after,
+                        $stamp,
+                    ),
                     'created_at' => $stamp,
                 ]);
             });

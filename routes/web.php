@@ -93,9 +93,14 @@ Route::middleware(['auth', 'verified'])
     ->group(function (): void {
         Route::get('/onboarding', BuatWorkspace::class)->name('onboarding.workspace');
 
+        // 'terbuka' menegakkan kunci aplikasi di server. Ia dipasang di grup,
+        // bukan di masing-masing rute, karena halaman yang ditambahkan besok
+        // tidak akan mengingatkan siapa pun bahwa ia perlu dijaga juga.
+        // Middleware-nya sendiri yang melewatkan /app/kunci, supaya
+        // pengalihannya tidak berputar.
         Route::prefix('app')
             ->name('app.')
-            ->middleware('workspace')
+            ->middleware(['workspace', 'terbuka'])
             ->group(function (): void {
                 Route::get('/', Beranda::class)->name('beranda');
                 Route::get('/tambah', Tambah::class)->name('tambah');

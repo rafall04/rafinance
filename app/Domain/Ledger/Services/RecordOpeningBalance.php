@@ -10,6 +10,7 @@ use App\Domain\Ledger\Enums\AccountType;
 use App\Domain\Ledger\Enums\TransactionKind;
 use App\Domain\Ledger\Models\Account;
 use App\Domain\Ledger\Models\Transaction;
+use App\Support\WaktuBuku;
 
 /**
  * Mencatat saldo awal sebagai transaksi sungguhan.
@@ -48,7 +49,10 @@ final class RecordOpeningBalance
             // Tanggal hari ini, bukan tanggal jauh di masa lalu: saldo awal
             // adalah pernyataan tentang keadaan SEKARANG, dan menanggalkannya
             // mundur akan mengubah laporan periode yang sudah ditutup.
-            bookedDate: now()->toDateString(),
+            //
+            // "Hari ini" menurut zona waktu buku, bukan UTC — kalau tidak,
+            // saldo awal yang dicatat pukul dua pagi WIB tertanggal kemarin.
+            bookedDate: WaktuBuku::hariIni(),
         ));
     }
 }

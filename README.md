@@ -173,9 +173,9 @@ membersihkannya di `terminate()` middleware dan di setiap batas job antrean.
 
 | Ukuran | Anggaran | Hasil |
 |---|---|---|
-| JavaScript awal (gzip) | ≤ 200 KB | **110,6 KB** |
+| JavaScript awal (gzip) | ≤ 200 KB | **111,3 KB** |
 | CSS (gzip) | — | **9,8 KB** |
-| Service worker (gzip) | — | 7,9 KB, dimuat terpisah |
+| Service worker (gzip) | — | 8,1 KB, dimuat terpisah |
 | Font (total) | — | 56 KB, self-host, subset latin |
 
 Angka JavaScript itu sudah termasuk Livewire dan Alpine, yang memang dibundel ke dalam `app.js`
@@ -185,6 +185,23 @@ diam. Anggaran yang dipenuhi dengan menghilangkan mesinnya bukan anggaran yang d
 
 Terverifikasi di viewport 360px: nol kontrol di bawah 44px, tanpa gulir horizontal, mode gelap dan
 mode privasi bekerja, `:focus-visible` dan `prefers-reduced-motion` ada di stylesheet terkompilasi.
+
+### Service worker dan antrean offline
+
+Service worker dilayani dari `/build/sw.js`, bukan dari akar. Daftar precache-nya memakai URL
+relatif, yang hanya benar dari dalam `/build/` — jadi memindahkannya ke akar justru mematikan
+precache. Yang membuatnya tetap boleh mengendalikan seluruh situs adalah header
+`Service-Worker-Allowed: /`, dipasang di nginx kontainer dan diteruskan vhost host.
+
+Tanpa header itu peramban menolak pendaftaran dengan `SecurityError`, dan sampai Juli 2026 itulah
+yang terjadi di produksi: nol service worker terdaftar, tanpa satu pun pesan galat karena
+kegagalannya ditelan `catch` kosong.
+
+Karena kegagalan seperti itu bisa datang dari mana saja — mode privat, kebijakan perangkat, satu
+header yang salah — pengiriman antrean **tidak lagi bergantung pada service worker**. Aturannya ada
+di `resources/js/kirim-antrean.js` dan dipakai bersama: service worker memakainya kalau ada, halaman
+memakainya kalau tidak. Transaksi yang sudah dibaca pengguna sebagai "tersimpan" tidak boleh
+bergantung pada satu mekanisme yang bisa diam-diam tidak terpasang.
 
 LCP di perangkat kelas Moto G Power belum diukur — butuh perangkat sungguhan, bukan emulasi.
 

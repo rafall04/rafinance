@@ -10,6 +10,7 @@ use App\Domain\Billing\Models\Subscription;
 use App\Domain\Billing\Models\UsageCounter;
 use App\Domain\Tenancy\Models\Workspace;
 use App\Domain\Tenancy\TenantContext;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Penegakan kuota.
@@ -43,7 +44,7 @@ final class QuotaGuard
             return;
         }
 
-        $batas = $plan->batas($this->kunciBatas($metric));
+        $batas = $this->batasDalamSatuanMetrik($plan, $metric);
 
         if ($batas === Plan::TANPA_BATAS) {
             return;
@@ -73,7 +74,15 @@ final class QuotaGuard
             ['value' => 0],
         );
 
-        $baris->increment('value', $tambahan);
+        // GREATEST, bukan increment(): $tambahan boleh negatif — anggota yang
+        // keluar mengembalikan jatahnya — dan penghitung yang jatuh di bawah
+        // nol akan diam-diam memberi kuota tambahan kepada workspace yang
+        // pernah kehilangan lebih banyak anggota daripada yang pernah masuk.
+        // Dihitung di dalam SQL supaya dua permintaan bersamaan tidak saling
+        // menimpa hasil bacaan masing-masing.
+        UsageCounter::query()
+            ->whereKey($baris->getKey())
+            ->update(['value' => DB::raw('GREATEST(0, value + '.(int) $tambahan.')')]);
     }
 
     public function terpakai(Workspace $workspace, string $metric): int
@@ -97,13 +106,15 @@ final class QuotaGuard
         $daftar = [
             [UsageCounter::TRANSAKSI, 'Transaksi bulan ini'],
             [UsageCounter::ANGGOTA, 'Anggota'],
-            [UsageCounter::LAMPIRAN_BYTE, 'Lampiran (byte)'],
+            [UsageCounter::LAMPIRAN_BYTE, 'Lampiran'],
         ];
 
         return array_map(function (array $satu) use ($workspace, $plan): object {
             [$metric, $label] = $satu;
 
-            $batas = $plan?->batas($this->kunciBatas($metric)) ?? Plan::TANPA_BATAS;
+            $batas = $plan !== null
+                ? $this->batasDalamSatuanMetrik($plan, $metric)
+                : Plan::TANPA_BATAS;
             $terpakai = $this->terpakai($workspace, $metric);
 
             return (object) [
@@ -138,5 +149,31 @@ final class QuotaGuard
             UsageCounter::OCR => 'ocr',
             default => $metric,
         };
+    }
+
+    /**
+     * Batas plan, dinyatakan ulang dalam satuan yang dipakai penghitungnya.
+     *
+     * Satu-satunya yang perlu diterjemahkan sekarang adalah lampiran, dan
+     * selisihnya tidak kecil: penghitungnya menyimpan BYTE (metriknya memang
+     * bernama attachments_bytes) sementara plan menuliskan MEGABYTE. Tanpa
+     * pengalian ini, plan "500 MB" akan menolak lampiran begitu totalnya lewat
+     * 500 byte — meleset 1.048.576 kali, dan meleset ke arah yang membuat
+     * fitur berbayar terasa rusak.
+     */
+    private function batasDalamSatuanMetrik(Plan $plan, string $metric): int
+    {
+        $batas = $plan->batas($this->kunciBatas($metric));
+
+        if ($batas === Plan::TANPA_BATAS) {
+            return Plan::TANPA_BATAS;
+        }
+
+        return $batas * $this->faktorSatuan($metric);
+    }
+
+    private function faktorSatuan(string $metric): int
+    {
+        return $metric === UsageCounter::LAMPIRAN_BYTE ? 1024 * 1024 : 1;
     }
 }

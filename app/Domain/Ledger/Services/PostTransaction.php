@@ -13,8 +13,10 @@ use App\Domain\Ledger\Enums\TransactionStatus;
 use App\Domain\Ledger\Models\Entry;
 use App\Domain\Ledger\Models\Transaction;
 use App\Support\Money;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 /**
  * Menulis transaksi ke buku besar.
@@ -51,6 +53,33 @@ final class PostTransaction
             app(QuotaGuard::class)->pastikanBolehMenambah(UsageCounter::TRANSAKSI);
         }
 
+        try {
+            return $this->tulis($draft);
+        } catch (UniqueConstraintViolationException) {
+            // Dua kiriman dengan ULID yang sama tiba nyaris bersamaan, dan
+            // keduanya lolos pemeriksaan di atas sebelum salah satunya sempat
+            // menulis. Itu bukan keadaan langka di sini: antrean offline
+            // mengirim ulang, dan halaman yang sama bisa terbuka di dua tab.
+            //
+            // Yang menang sudah menyimpan transaksinya; yang kalah cukup
+            // mengembalikan hasil yang sama. Primary key-lah yang menjadikan
+            // ini aman — bukan pemeriksaan di atas, yang hanya menghemat
+            // pekerjaan pada kasus yang tidak berbenturan.
+            $sudahAda = Transaction::query()->find($draft->id);
+
+            if ($sudahAda !== null) {
+                return $sudahAda;
+            }
+
+            throw new RuntimeException(
+                'Transaksi '.$draft->id.' bentrok di primary key tapi tidak bisa dibaca kembali. '
+                .'Kemungkinan besar ia milik workspace lain.'
+            );
+        }
+    }
+
+    private function tulis(DraftTransaction $draft): Transaction
+    {
         return DB::connection('pgsql')->transaction(function () use ($draft): Transaction {
             $transaction = Transaction::query()->create([
                 'id' => $draft->id,
