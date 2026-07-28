@@ -90,7 +90,7 @@
 
     {{-- Papan angka besar, menempel di bawah supaya tetap di jangkauan ibu jari
          satu tangan. Tombol sistem terlalu kecil dan memaksa pindah genggaman. --}}
-    <div class="bg-paper rule-t sticky bottom-0 px-3 pt-3 pb-3">
+    <div class="menempel-atas-nav bg-paper rule-t px-3 pt-3 pb-3">
         <div class="papan-angka" role="group" aria-label="Papan angka">
             @foreach (['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0'] as $tombol)
                 <button

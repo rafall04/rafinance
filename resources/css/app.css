@@ -51,6 +51,25 @@
     --radius: 10px;
     --shell-max: 480px;
     --tap-min: 44px;
+
+    /*
+     * Tinggi bilah navigasi bawah, di luar safe area.
+     *
+     * Satu angka, dan semua yang berhubungan dengannya diturunkan dari sini:
+     * tinggi bilahnya sendiri, ruang bawah <main>, dan posisi papan angka yang
+     * menempel di halaman Tambah. Sebelumnya ketiganya ditebak terpisah, dan
+     * tebakannya meleset — tombol Simpan tertimpa bilah navigasi sejauh 21px,
+     * cukup untuk membuat ketukan di tengah tombol mendarat di tombol "+"
+     * navigasi alih-alih menyimpan transaksinya.
+     *
+     * 56 = 44 (target sentuh minimum) + 6 atas + 6 bawah.
+     */
+    --nav-h: 56px;
+
+    /* Jarak tepi layar untuk seluruh isi aplikasi. Dipakai juga sebagai
+       scroll-padding baris cip, supaya cip pertama berhenti sejajar dengan
+       teks di atasnya dan bukan menempel di tepi. */
+    --sisi: 20px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -198,6 +217,17 @@
         font-feature-settings: 'tnum' 1;
         text-align: right;
         white-space: nowrap;
+
+        /*
+         * Merapatkan jarak "Rp" ke angkanya.
+         *
+         * Di font monospace setiap glif selebar sama — termasuk spasi. Jadi
+         * satu spasi biasa antara simbol dan angka tampil selebar satu digit
+         * penuh, dan di ukuran besar jaraknya terbaca seperti kesalahan
+         * ketik. Hanya spasi itu yang terpengaruh: pemisah ribuan memakai
+         * titik, jadi perataan kolom angka tidak ikut bergeser sedikit pun.
+         */
+        word-spacing: -0.28em;
     }
 
     .nominal-lg {
@@ -935,11 +965,66 @@
      * tipis. Keadaan terpilih ditandai warna DAN tebal huruf: warna saja gagal
      * bagi sebagian orang.
      */
+    /*
+     * Bilah navigasi bawah. Tingginya ditetapkan, bukan diikutkan isinya.
+     *
+     * Selama tingginya ditentukan isi, tidak ada yang bisa diletakkan tepat di
+     * atasnya dengan yakin — dan itulah yang membuat papan angka di halaman
+     * Tambah tertimpa 21px, cukup untuk membuat ketukan di tengah tombol
+     * Simpan mendarat di tombol "+" navigasi.
+     */
+    .bilah-nav {
+        height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Ruang bawah untuk isi halaman, supaya baris terakhir tidak pernah
+       berakhir di balik bilah navigasi. */
+    .ruang-nav {
+        padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+    }
+
+    /* Bilah yang menempel tepat di atas navigasi — papan angka di Tambah. */
+    .menempel-atas-nav {
+        position: sticky;
+        bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+    }
+
+    /*
+     * Baris cip yang menggulir mendatar.
+     *
+     * Dua hal yang tidak bisa diselesaikan hanya dengan padding:
+     *
+     * 1. scroll-padding. Tanpa ini, peramban yang menggulirkan cip aktif ke
+     *    dalam pandangan — dan itu dilakukannya sendiri saat halaman dimuat —
+     *    menghentikannya tepat di tepi wadah, MELEWATI padding-nya. Hasilnya
+     *    terukur: scrollLeft 20 pada padding 20, sehingga cip pertama mendarat
+     *    di x=0 sementara seluruh teks di atasnya mulai di x=20. Satu-satunya
+     *    baris yang tidak sejajar di seluruh halaman.
+     *
+     * 2. Batang gulir. Ia terlihat sebagai garis abu-abu di bawah barisnya,
+     *    padahal cip-nya sendiri sudah menyatakan bahwa barisnya bisa digeser.
+     */
+    .baris-cip {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-inline: var(--sisi);
+        scroll-padding-inline: var(--sisi);
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+    }
+
+    .baris-cip::-webkit-scrollbar {
+        display: none;
+    }
+
     .cip {
         display: inline-flex;
         align-items: center;
         gap: 8px;
         flex-shrink: 0;
+        scroll-snap-align: start;
         /*
          * 44px penuh, bukan 36 dengan area ketuk yang diperluas.
          *

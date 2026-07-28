@@ -19,7 +19,7 @@
     {{-- Chip akun yang bisa digeser. Menyaring buku besar tanpa memuat ulang. --}}
     @if ($akunUang->isNotEmpty())
         <section class="rule-b pb-4">
-            <div class="flex snap-x gap-2 overflow-x-auto px-5" role="group" aria-label="Saring per akun">
+            <div class="baris-cip" role="group" aria-label="Saring per akun">
                 {{-- Keadaan terpilih ditandai warna DAN tebal huruf, lewat
                      [aria-pressed='true'] di CSS. Warna saja gagal bagi orang
                      yang tidak membedakannya — dan penyaring yang salah dibaca

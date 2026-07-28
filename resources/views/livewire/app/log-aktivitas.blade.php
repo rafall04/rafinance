@@ -41,7 +41,7 @@
 
     @if ($aksiTersedia->isNotEmpty())
         <section class="rule-b py-3">
-            <div class="flex snap-x gap-2 overflow-x-auto px-5" role="group" aria-label="Saring tindakan">
+            <div class="baris-cip" role="group" aria-label="Saring tindakan">
                 @foreach ($aksiTersedia as $aksi)
                     <button type="button" wire:click="saring('{{ $aksi->value }}')"
                             aria-pressed="{{ $saringAksi === $aksi->value ? 'true' : 'false' }}"

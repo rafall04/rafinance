@@ -9,7 +9,7 @@
     </header>
 
     <section class="rule-b py-3">
-        <div class="flex snap-x gap-2 overflow-x-auto px-5" role="group" aria-label="Pilih periode">
+        <div class="baris-cip" role="group" aria-label="Pilih periode">
             @foreach (['bulan-ini' => 'Bulan ini', 'bulan-lalu' => 'Bulan lalu', 'minggu-ini' => 'Minggu ini', 'tahun-ini' => 'Tahun ini'] as $nilai => $label)
                 <button type="button" wire:click="pilihPeriode('{{ $nilai }}')"
                         aria-pressed="{{ $periode === $nilai ? 'true' : 'false' }}"
@@ -22,31 +22,42 @@
     </section>
 
     {{-- Ringkasan periode. Angka besar dulu, rinciannya di bawah. --}}
-    <section class="rule-b grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-5">
-        <div>
-            <p class="label mb-1">Pemasukan</p>
-            <x-nominal :uang="$labaRugi->pendapatan" arah="masuk" class="block" />
-        </div>
-        <div>
-            <p class="label mb-1">Pengeluaran</p>
-            <x-nominal :uang="$labaRugi->beban" arah="keluar" class="block" />
-        </div>
-        <div class="col-span-2 rule-t pt-3">
-            <p class="label mb-1">{{ $labaRugi->laba->isNegative() ? 'Rugi' : 'Laba' }}</p>
-            <x-nominal :uang="$labaRugi->laba" besar
-                       :arah="$labaRugi->laba->isNegative() ? 'keluar' : 'masuk'" class="block" />
+    {{-- Label kiri, nominal kanan, satu baris masing-masing.
+         Susunan sebelumnya menumpuk label di atas nominalnya di dalam dua
+         kolom, dan karena .nominal rata kanan, angkanya berhenti di tepi
+         kanan KOLOMNYA — bukan di tepi kanan halaman. Pemasukan berakhir
+         menggantung di tengah layar, jauh dari labelnya dan tidak sejajar
+         dengan angka mana pun.
 
-            @if (! $banding->sebelumnya->laba->isZero())
-                <p class="text-ink-soft mt-1 text-[13px]">
-                    {{ $banding->selisih->isNegative() ? 'Turun' : 'Naik' }}
-                    {{ $banding->selisih->abs()->format() }} dari periode sebelumnya
-                </p>
-            @endif
+         Pola ini sama persis dengan Neraca di bawah, dan itu memang
+         intinya: satu cara membaca angka untuk seluruh halaman. --}}
+    <section class="rule-b px-5 py-4">
+        <div class="flex items-baseline justify-between gap-3 py-1">
+            <span class="label">Pemasukan</span>
+            <x-nominal :uang="$labaRugi->pendapatan" arah="masuk" />
         </div>
+
+        <div class="flex items-baseline justify-between gap-3 py-1">
+            <span class="label">Pengeluaran</span>
+            <x-nominal :uang="$labaRugi->beban" arah="keluar" />
+        </div>
+
+        <div class="rule-t mt-2 flex items-baseline justify-between gap-3 pt-3">
+            <span class="label">{{ $labaRugi->laba->isNegative() ? 'Rugi' : 'Laba' }}</span>
+            <x-nominal :uang="$labaRugi->laba" besar
+                       :arah="$labaRugi->laba->isNegative() ? 'keluar' : 'masuk'" />
+        </div>
+
+        @if (! $banding->sebelumnya->laba->isZero())
+            <p class="text-ink-soft mt-1.5 text-right text-[13px]">
+                {{ $banding->selisih->isNegative() ? 'Turun' : 'Naik' }}
+                {{ $banding->selisih->abs()->format() }} dari periode sebelumnya
+            </p>
+        @endif
     </section>
 
     <section class="rule-b py-3">
-        <div class="flex snap-x gap-2 overflow-x-auto px-5" role="group" aria-label="Pilih tampilan">
+        <div class="baris-cip" role="group" aria-label="Pilih tampilan">
             @foreach (['kategori' => 'Kategori', 'akun' => 'Akun', 'proyek' => 'Proyek', 'kontak' => 'Kontak', 'arus' => 'Arus kas'] as $nilai => $label)
                 <button type="button" wire:click="$set('tampilan', '{{ $nilai }}')"
                         aria-pressed="{{ $tampilan === $nilai ? 'true' : 'false' }}"

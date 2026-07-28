@@ -18,10 +18,13 @@
 @endphp
 
 @auth
+{{-- Tingginya ditetapkan --nav-h, bukan dibiarkan mengikuti isinya. Ruang
+     bawah <main> dan posisi papan angka di halaman Tambah diturunkan dari
+     angka yang sama, sehingga tidak ada lagi yang perlu menebak seberapa
+     tinggi bilah ini. --}}
 <nav
     aria-label="Navigasi utama"
-    class="bg-paper rule-t fixed inset-x-0 bottom-0 z-40"
-    style="padding-bottom: env(safe-area-inset-bottom);"
+    class="bilah-nav bg-paper rule-t fixed inset-x-0 bottom-0 z-40"
 >
     <ul class="shell grid grid-cols-5 items-center">
         @foreach ($tab as $item)
@@ -35,7 +38,7 @@
                     <a
                         href="{{ route($item['rute']) }}"
                         @if ($aktif) aria-current="page" @endif
-                        class="tap flex flex-col items-center justify-center gap-1 px-2 py-2 text-center
+                        class="tap flex flex-col items-center justify-center gap-1 px-2 text-center
                                {{ $aktif ? 'text-biru' : 'text-ink-soft' }}"
                     >
                         <x-tab-icon :name="$item['label']" :utama="$utama" />
@@ -48,7 +51,7 @@
                     <span
                         aria-disabled="true"
                         title="Belum tersedia"
-                        class="tap text-ink-soft/40 flex flex-col items-center justify-center gap-1 px-2 py-2 text-center"
+                        class="tap text-ink-soft/40 flex flex-col items-center justify-center gap-1 px-2 text-center"
                     >
                         <x-tab-icon :name="$item['label']" :utama="$utama" />
                         {{-- 12px, bukan 11px: itu batas bawah teks yang masih

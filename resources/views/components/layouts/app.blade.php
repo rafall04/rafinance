@@ -68,7 +68,7 @@
             class="bg-kuning/15 text-kuning-teks rule-b px-5 py-1.5 text-center text-[13px] font-medium"
         ></p>
 
-        <main id="konten" class="flex-1 pb-24">
+        <main id="konten" class="ruang-nav flex-1">
             {{ $slot }}
         </main>
 
