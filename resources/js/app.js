@@ -16,25 +16,7 @@ import {
  */
 
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/build/sw.js', { scope: '/' }).catch((galat) => {
-            // Kegagalan di sini TIDAK boleh sunyi.
-            //
-            // Versi sebelumnya menelannya dengan catch kosong dan komentar yang
-            // menenangkan, dan akibatnya berjalan berbulan-bulan di produksi:
-            // server tidak mengirim header Service-Worker-Allowed, pendaftaran
-            // ditolak dengan SecurityError, dan tidak ada satu pun tanda. Yang
-            // hilang bukan cuma "kemampuan offline" — antrean tidak pernah
-            // dikuras siapa pun, jadi transaksi yang sudah dibaca pengguna
-            // sebagai "tersimpan" mengendap di IndexedDB selamanya.
-            //
-            // Sekarang antreannya tetap terkuras dari halaman ini (lihat
-            // mintaSinkron), dan kegagalannya ditinggalkan di tempat yang bisa
-            // ditemukan orang berikutnya.
-            window.rafin.serviceWorkerGagal = String(galat?.message ?? galat);
-            console.error('[rafin] service worker gagal terdaftar:', galat);
-        });
-    });
+    window.addEventListener('load', () => daftarkanServiceWorker());
 
     navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data?.type === 'ANTREAN_BERUBAH') {
@@ -45,6 +27,53 @@ if ('serviceWorker' in navigator) {
             }
         }
     });
+}
+
+/**
+ * Mendaftarkan service worker, dengan satu percobaan kedua yang disengaja.
+ *
+ * Pendaftaran dengan scope '/' dari skrip di /build/ hanya diizinkan kalau
+ * server mengirim header Service-Worker-Allowed. Header itu sekarang dikirim —
+ * tapi ada satu keadaan yang tetap bisa menggagalkannya, dan ia sudah pernah
+ * terjadi: proksi di depan aplikasi masih menyimpan salinan LAMA berkas ini
+ * dari masa sebelum headernya ada.
+ *
+ * Rafin duduk di belakang Cloudflare, dan salinan lama itu tersimpan dengan
+ * `immutable, max-age=1 tahun`. Artinya tanpa pembersihan manual ia akan
+ * disajikan sampai tahun depan, dan seluruh kemampuan offline mati selama itu
+ * — persis kegagalan sunyi yang seharusnya sudah kita tinggalkan.
+ *
+ * Percobaan kedua memakai query yang berbeda. Bagi proksi mana pun itu kunci
+ * cache yang berbeda, jadi berkasnya diambil dari asalnya, lengkap dengan
+ * headernya. Bagi peramban, URL yang berbeda berarti pendaftaran yang berbeda;
+ * scope-nya sama, jadi yang lama tergantikan dan hanya ada satu yang aktif.
+ *
+ * Setelah cache proksinya bersih, percobaan pertama yang berhasil dan jalur
+ * ini tidak pernah terpakai lagi.
+ */
+async function daftarkanServiceWorker() {
+    try {
+        await navigator.serviceWorker.register('/build/sw.js', { scope: '/' });
+
+        return;
+    } catch (galat) {
+        console.warn('[rafin] pendaftaran service worker ditolak, mencoba melewati cache proksi:', galat);
+    }
+
+    try {
+        await navigator.serviceWorker.register('/build/sw.js?lewati-cache=1', { scope: '/' });
+
+        console.info('[rafin] service worker terdaftar lewat jalur cadangan. '
+            + 'Bersihkan cache proksi untuk /build/sw.js supaya jalur utamanya kembali dipakai.');
+    } catch (galat) {
+        // Benar-benar tidak bisa: mode privat, kebijakan perangkat, atau
+        // sesuatu yang belum kita ketahui. Aplikasi tetap berjalan dan antrean
+        // tetap terkuras dari halaman (lihat mintaSinkron) — yang hilang hanya
+        // pengiriman saat tab tertutup. Kegagalannya ditinggalkan di tempat
+        // yang bisa ditemukan orang berikutnya, bukan ditelan diam-diam.
+        window.rafin.serviceWorkerGagal = String(galat?.message ?? galat);
+        console.error('[rafin] service worker gagal terdaftar:', galat);
+    }
 }
 
 // Hasil pengiriman dari halaman sendiri, saat service worker tidak ada.
