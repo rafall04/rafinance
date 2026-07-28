@@ -14,7 +14,10 @@
     <title>{{ $title ? $title.' · Rafin' : 'Rafin' }}</title>
 
     <link rel="manifest" href="{{ asset('build/manifest.webmanifest') }}">
-    <link rel="apple-touch-icon" href="{{ asset('ikon/apple-touch-icon.png') }}">
+
+    {{-- ?v= menandai versi ikon — lihat catatan di vite.config.js. --}}
+    <link rel="icon" href="{{ asset('ikon/192.png') }}?v=2" sizes="192x192">
+    <link rel="apple-touch-icon" href="{{ asset('ikon/apple-touch-icon.png') }}?v=2">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Rafin">
 

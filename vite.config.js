@@ -50,10 +50,20 @@ export default defineConfig({
                 background_color: '#FBFBF9',
                 theme_color: '#FBFBF9',
                 categories: ['finance', 'productivity'],
+                // ?v= bukan hiasan. Nama berkas ikon tetap sepanjang umur
+                // aplikasi, sementara Cloudflare meng-cache .png dan .ico
+                // berdasarkan ekstensinya tanpa menunggu perintah dari asalnya.
+                // Tanpa penanda versi, ikon yang diganti akan tetap disajikan
+                // versi lamanya sampai seseorang membersihkan cache lewat
+                // dasbor — dan berkas yang hanya bisa diperbarui lewat dasbor
+                // pihak ketiga bukan berkas yang benar-benar kita kendalikan.
+                //
+                // Naikkan angkanya setiap kali ikonnya berubah, berbarengan
+                // dengan tag <link> di resources/views/components/layouts/.
                 icons: [
-                    { src: '/ikon/192.png', sizes: '192x192', type: 'image/png' },
-                    { src: '/ikon/512.png', sizes: '512x512', type: 'image/png' },
-                    { src: '/ikon/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+                    { src: '/ikon/192.png?v=2', sizes: '192x192', type: 'image/png' },
+                    { src: '/ikon/512.png?v=2', sizes: '512x512', type: 'image/png' },
+                    { src: '/ikon/maskable-512.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
                 ],
 
                 // Tekan-tahan ikon di layar utama. Empat hal yang paling sering

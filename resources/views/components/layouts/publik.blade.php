@@ -32,12 +32,17 @@
     <meta property="og:title" content="{{ $title ? $title.' · Rafin' : 'Rafin — buku kas untuk pribadi dan usaha kecil' }}">
     <meta property="og:description" content="{{ $deskripsi }}">
     <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:image" content="{{ url('/ikon/512.png') }}">
+    <meta property="og:image" content="{{ url('/ikon/512.png?v=2') }}">
     <meta name="twitter:card" content="summary">
 
     <link rel="canonical" href="{{ url()->current() }}">
-    <link rel="icon" href="/ikon/192.png" sizes="192x192">
-    <link rel="apple-touch-icon" href="/ikon/apple-touch-icon.png">
+
+    {{-- ?v= menandai versi ikon. Nama berkasnya tetap, sementara Cloudflare
+         meng-cache .png berdasarkan ekstensi tanpa menunggu asalnya; tanpa
+         penanda ini ikon yang diganti tetap tersaji versi lamanya. Naikkan
+         berbarengan dengan daftar icons di vite.config.js. --}}
+    <link rel="icon" href="/ikon/192.png?v=2" sizes="192x192">
+    <link rel="apple-touch-icon" href="/ikon/apple-touch-icon.png?v=2">
 
     <script>
         (function () {
