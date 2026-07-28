@@ -340,4 +340,27 @@ document.addEventListener(
  * Terakhir, bukan pertama: pengendali di atas memasang window.rafin, dan
  * penanganan x-on:click di halaman Tambah memanggilnya.
  */
+
+/*
+ * Aplikasi terkunci di tengah jalan.
+ *
+ * Middleware PastikanAplikasiTerbuka menjawab 423 untuk permintaan yang
+ * mengharapkan JSON, dan Livewire mengirim `Accept: application/json` di
+ * setiap permintaannya. Livewire hanya menangani 419 dan 422 secara khusus;
+ * sisanya berakhir di showHtmlModal(), yang menumpahkan halaman galat mentah
+ * ke layar.
+ *
+ * Artinya tanpa kaitan ini, orang yang menganggur lima menit lalu menekan
+ * "Simpan" akan disambut modal galat alih-alih layar kunci — bentuk lain dari
+ * "ditekan, tidak terjadi apa-apa" yang justru sedang kita berantas.
+ */
+Livewire.interceptRequest(({ onError }) => {
+    onError(({ response, preventDefault }) => {
+        if (response?.status !== 423) return;
+
+        preventDefault();
+        window.location.href = '/app/kunci';
+    });
+});
+
 Livewire.start();
